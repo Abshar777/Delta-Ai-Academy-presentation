@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>render</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#161616; --white:#f5f5f5; --gray:#cfcfcf; --amber:#e8a33c; --select:#2f9bf5;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; }
+  body{
+    background:var(--bg);
+    font-family:"Fredoka",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    color:var(--white);
+    display:flex; align-items:center; justify-content:center;
+    width:1920px; height:1080px; overflow:hidden;
+  }
+  .stage{ width:100%; max-width:1500px; display:flex; flex-direction:column;
+    align-items:center; text-align:center; gap:46px; padding:0 80px; }
+  .field{ position:relative; display:inline-block; max-width:100%; }
+  .field .box{ position:absolute; inset:-14px -20px; border:2px solid var(--select);
+    border-radius:3px; opacity:0; pointer-events:none; }
+  .field.selected .box{ opacity:1; }
+  .box::before,.box::after,.handle{ content:""; position:absolute; width:10px; height:10px;
+    background:#fff; border:2px solid var(--select); border-radius:1px; }
+  .box::before{ top:-6px; left:-6px; } .box::after{ bottom:-6px; right:-6px; }
+  .handle.tr{ top:-6px; right:-6px; } .handle.bl{ bottom:-6px; left:-6px; }
+  .text{ display:inline; white-space:pre-wrap; word-break:break-word; }
+  .caret{ display:inline-block; width:3px; height:1em; background:var(--select);
+    margin-left:2px; transform:translateY(0.16em); }
+  .title{ font-size:88px; font-weight:500; letter-spacing:.5px; line-height:1.15; }
+  .title .amber{ color:var(--amber); }
+  .desc{ font-size:40px; font-weight:300; line-height:1.5; color:var(--gray); max-width:1300px; }
+</style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <div class="field title" id="f-title">
+      <span class="box"><i class="handle tr"></i><i class="handle bl"></i></span>
+      <span class="text" id="t-title"></span><span class="caret" id="c-title"></span>
+    </div>
+    <div class="field desc" id="f-desc">
+      <span class="box"><i class="handle tr"></i><i class="handle bl"></i></span>
+      <span class="text" id="t-desc"></span><span class="caret" id="c-desc"></span>
+    </div>
+  </div>
+<script>
+  const TITLE=[{t:"What Is "},{t:"Ai",cls:"amber"},{t:" ??"}];
+  const DESC=[{t:"ArtificialIntelligence (AI) is software that understands plain-language instructions and produces useful results writing, images, code, decisions, and more. You don't need to know how to code. You just need to know what to ask for."}];
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // flatten to chars carrying their class
+  function flatten(segs){ const a=[]; for(const s of segs) for(const ch of s.t) a.push({ch,cls:s.cls}); return a; }
+  // build cumulative reveal time for each char
+  function schedule(chars, start, base){
+    const times=[]; let t=start;
+    for(const c of chars){
+      let d=base;
+      if(/[.,?]/.test(c.ch)) d+=240; else if(c.ch===' ') d+=55;
+      t+=d; times.push(t);
+    }
+    return {times, end:t};
+  }
+  function renderChars(chars, n){
+    let html=''; let curCls=null; let buf='';
+    const flush=()=>{ if(buf){ html+= curCls?`<span class="${curCls}">${esc(buf)}</span>`:esc(buf); buf=''; } };
+    for(let i=0;i<n;i++){ const c=chars[i]; if(c.cls!==curCls){ flush(); curCls=c.cls; } buf+=c.ch; }
+    flush(); return html;
+  }
+
+  const titleChars=flatten(TITLE), descChars=flatten(DESC);
+  const T_START=700;
+  const ST=schedule(titleChars, T_START, 88);
+  const T_TITLE_DESELECT=ST.end+650;
+  const D_START=T_TITLE_DESELECT+350;
+  const SD=schedule(descChars, D_START, 24);
+  const D_DESELECT=SD.end+700;
+  const T_END=D_DESELECT+1300;
+  window.TOTAL_MS=T_END;
+
+  const fT=document.getElementById('f-title'), fD=document.getElementById('f-desc');
+  const tT=document.getElementById('t-title'), tD=document.getElementById('t-desc');
+  const cT=document.getElementById('c-title'), cD=document.getElementById('c-desc');
+
+  function countVisible(times,t){ let n=0; while(n<times.length && times[n]<=t) n++; return n; }
+  function caretOn(t){ return (t%1000)<520; }   // deterministic blink
+
+  window.seek=function(t){
+    const titleSelected = t>=T_START && t<T_TITLE_DESELECT;
+    const titleTyping   = t>=T_START && t<ST.end;
+    const descSelected  = t>=D_START && t<D_DESELECT;
+    const descTyping    = t>=D_START && t<SD.end;
+
+    tT.innerHTML=renderChars(titleChars, countVisible(ST.times,t));
+    tD.innerHTML=renderChars(descChars, countVisible(SD.times,t));
+
+    fT.classList.toggle('selected', titleSelected);
+    fD.classList.toggle('selected', descSelected);
+    cT.style.opacity = (titleTyping && caretOn(t)) ? 1 : 0;
+    cD.style.opacity = (descTyping && caretOn(t)) ? 1 : 0;
+  };
+  window.seek(0);
+  document.fonts.ready.then(()=>{ window.FONTS_READY=true; });
+</script>
+</body>
+</html>

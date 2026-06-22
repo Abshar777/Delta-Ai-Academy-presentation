@@ -1,0 +1,10 @@
+node_modules
+capture.js
+build_pptx.js
+build_keynote_pptx.js
+render.html
+overlay.html
+package.json
+package-lock.json
+.DS_Store
+*.log

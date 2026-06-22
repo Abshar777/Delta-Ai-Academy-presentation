@@ -1,0 +1,59 @@
+1
+00:00:00,000 --> 00:00:01,400
+Next, what is a model?
+
+2
+00:00:01,920 --> 00:00:03,900
+A model is the brain of the AI tool.
+
+3
+00:00:04,300 --> 00:00:06,380
+If you use AI tools like
+
+4
+00:00:06,380 --> 00:00:08,300
+Gemini, ChatGPT, Claude —
+
+5
+00:00:08,340 --> 00:00:09,400
+whatever the tool,
+
+6
+00:00:10,060 --> 00:00:11,900
+you're actually interacting with the models.
+
+7
+00:00:12,240 --> 00:00:13,500
+The model does what?
+
+8
+00:00:13,600 --> 00:00:14,700
+It accepts your input.
+
+9
+00:00:14,860 --> 00:00:16,660
+So the model is actually trained
+
+10
+00:00:16,660 --> 00:00:18,100
+with massive datasets.
+
+11
+00:00:18,460 --> 00:00:20,700
+It actually has billions of data,
+
+12
+00:00:20,700 --> 00:00:23,380
+and is trained to perform tasks
+
+13
+00:00:23,380 --> 00:00:24,500
+based on that data.
+
+14
+00:00:24,800 --> 00:00:26,400
+If you give an instruction,
+
+15
+00:00:26,780 --> 00:00:29,500
+it can perform and analyze the input.

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Internship Report — Northline Group</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --blue:#16229A; --blue2:#101A86; --ink:#ffffff;
+    --dim:rgba(255,255,255,.72); --faint:rgba(255,255,255,.45); --rule:rgba(255,255,255,.45);
+    --fd:"Anton",-apple-system,BlinkMacSystemFont,sans-serif;
+    --fb:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ width:100%; height:100%; overflow:hidden; }
+  body{ background:#0c1568; color:var(--ink);
+    font-family:var(--fb); -webkit-font-smoothing:antialiased;
+    display:flex; align-items:center; justify-content:center; }
+  #app{ position:relative; width:1920px; height:1080px; overflow:hidden;
+    flex:0 0 auto; transform-origin:center center;
+    background:radial-gradient(130% 120% at 18% 6%, #1E2BAE 0%, #16229A 52%, #0E1782 100%); }
+
+  /* ---- persistent frame ---- */
+  #frame{ position:absolute; inset:0; pointer-events:none; z-index:5; }
+  .flab{ position:absolute; font-weight:700; font-size:26px; letter-spacing:.22em;
+    text-transform:uppercase; color:var(--ink); will-change:opacity,transform; }
+  #ftl{ top:64px; left:96px; } #ftr{ top:64px; right:96px; }
+  #fbl{ bottom:60px; left:96px; color:var(--dim); }
+  #fbr{ bottom:60px; right:96px; color:var(--dim); }
+  #ftrule{ position:absolute; top:118px; left:96px; right:96px; height:2px;
+    background:var(--rule); transform:scaleX(0); transform-origin:left center; }
+
+  /* ---- scenes ---- */
+  .scene{ position:absolute; inset:0; display:none; will-change:opacity,transform; }
+  .scene.live{ display:block; }
+  .pad{ padding:170px 96px 150px; height:100%; display:flex; flex-direction:column; justify-content:center; }
+
+  .big{ font-family:var(--fd); text-transform:uppercase; line-height:.9;
+    letter-spacing:.005em; }
+  .mask{ display:block; overflow:hidden; }
+  .mask > span{ display:inline-block; transform:translateY(112%); will-change:transform; }
+
+  .sec{ font-family:var(--fb); font-weight:700; font-size:30px; letter-spacing:.18em;
+    text-transform:uppercase; color:#9FB0FF; margin-bottom:30px; will-change:opacity,transform; }
+  .accent{ height:6px; background:var(--ink); transform:scaleX(0); transform-origin:left center;
+    will-change:transform; }
+
+  .body{ font-family:var(--fb); font-weight:400; color:var(--dim); line-height:1.5; }
+
+  .ghost{ position:absolute; font-family:var(--fd); color:rgba(255,255,255,.055);
+    font-size:880px; line-height:.7; right:-30px; top:46%; transform:translateY(-50%);
+    z-index:0; pointer-events:none; will-change:transform,opacity; }
+
+  /* cover */
+  #s1 .coverrow{ position:absolute; left:96px; right:96px; bottom:200px; display:flex; align-items:flex-end; gap:60px; }
+  #s1 .big{ font-size:240px; }
+  #s1 .coversub{ padding-bottom:26px; }
+  #s1 .subt{ font-weight:700; font-size:38px; letter-spacing:.04em; text-transform:uppercase;
+    line-height:1.18; max-width:560px; }
+  #s1 .coversub .rule{ height:3px; background:var(--ink); margin-top:26px; transform:scaleX(0);
+    transform-origin:left center; will-change:transform; }
+
+  /* generic heading scenes */
+  .h1{ font-size:172px; }
+  .h2{ font-size:150px; }
+  .lead{ font-size:40px; max-width:1180px; margin-top:40px; }
+
+  /* lists */
+  .list{ margin-top:50px; display:flex; flex-direction:column; gap:26px; max-width:1300px; }
+  .item{ display:flex; gap:30px; align-items:baseline; will-change:opacity,transform; }
+  .item .n{ font-family:var(--fd); font-size:40px; color:#9FB0FF; min-width:70px; }
+  .item .t{ font-size:38px; font-weight:600; }
+  .item .d{ font-size:30px; color:var(--dim); font-weight:400; }
+
+  .bullets{ margin-top:46px; display:flex; flex-direction:column; gap:24px; max-width:1240px; }
+  .bul{ display:flex; gap:26px; align-items:flex-start; font-size:36px; font-weight:500;
+    will-change:opacity,transform; }
+  .bul .sq{ width:20px; height:20px; background:var(--ink); margin-top:12px; flex:0 0 20px; }
+
+  /* projects */
+  .projects{ margin-top:50px; display:flex; flex-direction:column; gap:34px; max-width:1500px; }
+  .proj{ display:flex; gap:40px; align-items:baseline; padding-bottom:30px;
+    border-bottom:2px solid rgba(255,255,255,.18); will-change:opacity,transform; }
+  .proj .pn{ font-family:var(--fd); font-size:64px; color:#9FB0FF; min-width:120px; }
+  .proj .pt{ font-size:46px; font-weight:700; }
+  .proj .pd{ font-size:30px; color:var(--dim); font-weight:400; margin-top:8px; max-width:900px; }
+
+  /* tags */
+  .tags{ margin-top:54px; display:flex; flex-wrap:wrap; gap:22px; max-width:1500px; }
+  .tag{ font-size:38px; font-weight:700; padding:18px 40px; border:2px solid rgba(255,255,255,.4);
+    border-radius:100px; will-change:opacity,transform; }
+
+  /* stats */
+  .stats{ margin-top:60px; display:flex; gap:46px; }
+  .stat{ flex:1; will-change:opacity,transform; }
+  .stat .v{ font-family:var(--fd); font-size:150px; line-height:.9; }
+  .stat .k{ font-size:30px; font-weight:600; color:var(--dim); margin-top:14px; text-transform:uppercase; letter-spacing:.06em; }
+  .stat .bar{ height:5px; background:#9FB0FF; margin-top:22px; transform:scaleX(0); transform-origin:left; will-change:transform; }
+
+  /* quote */
+  #s9 .quote{ font-family:var(--fd); text-transform:uppercase; font-size:104px; line-height:1.0;
+    max-width:1560px; }
+  #s9 .attr{ font-size:34px; font-weight:600; color:#9FB0FF; margin-top:50px; letter-spacing:.06em; }
+
+  /* thanks */
+  #s10{ display:none; }
+  #s10.live{ display:flex; align-items:center; justify-content:center; }
+  #s10 .wrap{ text-align:center; }
+  #s10 .big{ font-size:230px; }
+  #s10 .contact{ margin-top:40px; font-size:36px; font-weight:600; letter-spacing:.04em; will-change:opacity,transform; }
+  #s10 .contact .dim{ color:var(--dim); }
+
+  #bar{ position:absolute; left:0; bottom:0; height:5px; width:0; background:#9FB0FF; z-index:6; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="frame">
+    <div class="flab" id="ftl">Northline Group</div>
+    <div class="flab" id="ftr">Lucy Harding</div>
+    <div id="ftrule"></div>
+    <div class="flab" id="fbl">www.reallygreatsite.com</div>
+    <div class="flab" id="fbr">June 20, 2026</div>
+  </div>
+
+  <!-- S1 cover -->
+  <section class="scene" id="s1">
+    <div class="ghost" id="g1" style="opacity:.04">26</div>
+    <div class="coverrow">
+      <div class="big" id="s1big">
+        <span class="mask"><span class="ln">Internship</span></span>
+        <span class="mask"><span class="ln">Report</span></span>
+      </div>
+      <div class="coversub">
+        <div class="subt" id="s1sub">A summary of my professional experience</div>
+        <div class="rule" id="s1rule"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S2 contents -->
+  <section class="scene" id="s2">
+    <div class="ghost" id="g2">00</div>
+    <div class="pad">
+      <div class="sec" id="s2sec">Overview</div>
+      <div class="big h2"><span class="mask"><span class="ln">What's inside</span></span></div>
+      <div class="accent" id="s2acc" style="width:360px; margin-top:34px"></div>
+      <div class="list" id="s2list">
+        <div class="item"><span class="n">01</span><span class="t">Introduction</span></div>
+        <div class="item"><span class="n">02</span><span class="t">About the Company</span></div>
+        <div class="item"><span class="n">03</span><span class="t">My Role &amp; Responsibilities</span></div>
+        <div class="item"><span class="n">04</span><span class="t">Key Projects</span></div>
+        <div class="item"><span class="n">05</span><span class="t">Skills &amp; Growth</span></div>
+        <div class="item"><span class="n">06</span><span class="t">Reflection &amp; Next Steps</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S3 introduction -->
+  <section class="scene" id="s3">
+    <div class="ghost" id="g3">01</div>
+    <div class="pad">
+      <div class="sec" id="s3sec">01 — Introduction</div>
+      <div class="big h1"><span class="mask"><span class="ln">Introduction</span></span></div>
+      <div class="accent" id="s3acc" style="width:300px; margin-top:34px"></div>
+      <div class="body lead" id="s3body">Over a twelve-week internship at Northline Group, I joined the operations team to support live projects, learn industry workflows, and contribute to real deliverables. This report summarises what I did, what I learned, and where I'm headed next.</div>
+    </div>
+  </section>
+
+  <!-- S4 company -->
+  <section class="scene" id="s4">
+    <div class="ghost" id="g4">02</div>
+    <div class="pad">
+      <div class="sec" id="s4sec">02 — About the Company</div>
+      <div class="big h2"><span class="mask"><span class="ln">The company</span></span></div>
+      <div class="accent" id="s4acc" style="width:300px; margin-top:34px"></div>
+      <div class="bullets" id="s4list">
+        <div class="bul"><span class="sq"></span><span>Northline Group helps clients streamline operations and deliver measurable results.</span></div>
+        <div class="bul"><span class="sq"></span><span>Focus areas span logistics, strategy and data analytics.</span></div>
+        <div class="bul"><span class="sq"></span><span>A fast, collaborative team where interns own real work from day one.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S5 role -->
+  <section class="scene" id="s5">
+    <div class="ghost" id="g5">03</div>
+    <div class="pad">
+      <div class="sec" id="s5sec">03 — My Role</div>
+      <div class="big h2"><span class="mask"><span class="ln">Role &amp;</span></span><span class="mask"><span class="ln">responsibilities</span></span></div>
+      <div class="accent" id="s5acc" style="width:300px; margin-top:30px"></div>
+      <div class="bullets" id="s5list">
+        <div class="bul"><span class="sq"></span><span>Supported daily operations and weekly reporting.</span></div>
+        <div class="bul"><span class="sq"></span><span>Prepared analysis and client-ready documents.</span></div>
+        <div class="bul"><span class="sq"></span><span>Coordinated across teams and tracked deliverables.</span></div>
+        <div class="bul"><span class="sq"></span><span>Researched processes and proposed improvements.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S6 projects -->
+  <section class="scene" id="s6">
+    <div class="ghost" id="g6">04</div>
+    <div class="pad">
+      <div class="sec" id="s6sec">04 — Key Projects</div>
+      <div class="big h2"><span class="mask"><span class="ln">Key projects</span></span></div>
+      <div class="projects" id="s6list">
+        <div class="proj"><span class="pn">01</span><div><div class="pt">Process Audit</div><div class="pd">Mapped and streamlined a reporting workflow, cutting turnaround time.</div></div></div>
+        <div class="proj"><span class="pn">02</span><div><div class="pt">Client Dashboard</div><div class="pd">Built a live tracking dashboard for key performance indicators.</div></div></div>
+        <div class="proj" style="border-bottom:none"><span class="pn">03</span><div><div class="pt">Market Research Brief</div><div class="pd">Compiled a research brief that informed a key team decision.</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S7 skills -->
+  <section class="scene" id="s7">
+    <div class="ghost" id="g7">05</div>
+    <div class="pad">
+      <div class="sec" id="s7sec">05 — Skills &amp; Growth</div>
+      <div class="big h2"><span class="mask"><span class="ln">Skills I built</span></span></div>
+      <div class="accent" id="s7acc" style="width:300px; margin-top:34px"></div>
+      <div class="tags" id="s7tags">
+        <div class="tag">Communication</div><div class="tag">Data Analysis</div><div class="tag">Project Coordination</div>
+        <div class="tag">Problem-Solving</div><div class="tag">Presentation</div><div class="tag">Time Management</div><div class="tag">Teamwork</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S8 numbers -->
+  <section class="scene" id="s8">
+    <div class="ghost" id="g8" style="opacity:.04">%</div>
+    <div class="pad">
+      <div class="sec" id="s8sec">By the Numbers</div>
+      <div class="big h2"><span class="mask"><span class="ln">Impact at a glance</span></span></div>
+      <div class="stats" id="s8stats">
+        <div class="stat"><div class="v" id="st1">0</div><div class="k">Weeks on the team</div><div class="bar" id="sb1"></div></div>
+        <div class="stat"><div class="v" id="st2">0</div><div class="k">Projects delivered</div><div class="bar" id="sb2"></div></div>
+        <div class="stat"><div class="v" id="st3">0</div><div class="k">Faster reporting</div><div class="bar" id="sb3"></div></div>
+        <div class="stat"><div class="v" id="st4">0</div><div class="k">Teams collaborated</div><div class="bar" id="sb4"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S9 reflection -->
+  <section class="scene" id="s9">
+    <div class="ghost" id="g9">06</div>
+    <div class="pad">
+      <div class="sec" id="s9sec">06 — Reflection</div>
+      <div class="quote" id="s9q">
+        <span class="mask"><span class="ln">This internship turned</span></span>
+        <span class="mask"><span class="ln">theory into real,</span></span>
+        <span class="mask"><span class="ln">measurable impact.</span></span>
+      </div>
+      <div class="attr" id="s9attr">— Lucy Harding, Operations Intern</div>
+    </div>
+  </section>
+
+  <!-- S10 thanks -->
+  <section class="scene" id="s10">
+    <div class="wrap">
+      <div class="big" id="s10big"><span class="mask"><span class="ln">Thank you</span></span></div>
+      <div class="contact" id="s10c">lucy.harding@reallygreatsite.com&nbsp;&nbsp;·&nbsp;&nbsp;<span class="dim">www.reallygreatsite.com</span></div>
+    </div>
+  </section>
+
+  <div id="bar"></div>
+</div>
+
+<script>
+  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  const eq=x=>1-Math.pow(1-x,5);
+  const ee=x=> x>=1?1:1-Math.pow(2,-11*x);     // easeOutExpo for mask rise
+  const g=id=>document.getElementById(id);
+
+  function A(el,lt,a,dur=0.7,{y=24,x=0,blur=0}={}){
+    if(typeof el==='string') el=g(el);
+    const p=clamp((lt-a)/dur,0,1), e=eq(p);
+    el.style.opacity=e;
+    el.style.transform=`translate(${(1-e)*x}px,${(1-e)*y}px)`;
+    if(blur) el.style.filter=`blur(${(1-e)*blur}px)`;
+    return e;
+  }
+  function rise(el,lt,a,{stag=0.12,dur=0.9}={}){
+    if(typeof el==='string') el=g(el);
+    const ln=[...el.querySelectorAll('.ln')];
+    ln.forEach((s,i)=>{ const p=clamp((lt-(a+i*stag))/dur,0,1); s.style.transform=`translateY(${(1-ee(p))*114}%)`; });
+  }
+  function draw(el,lt,a,dur=0.7){ if(typeof el==='string') el=g(el); el.style.transform=`scaleX(${eq(clamp((lt-a)/dur,0,1))})`; }
+  const fmt=n=>Math.round(n).toLocaleString('en-US');
+  function count(el,lt,a,dur,target,suffix=''){ const e=eq(clamp((lt-a)/dur,0,1)); g(el).textContent=fmt(e*target)+suffix; }
+
+  function stagger(listId,childSel,lt,start,step,fn){ const ch=[...g(listId).querySelectorAll(childSel)]; ch.forEach((c,i)=>fn(c,i,lt,start+i*step)); }
+
+  const SC=[
+    ['s1',7.0,'June 20, 2026',(t)=>{ rise('s1big',t,0.4,{stag:0.16,dur:1.0}); A('s1sub',t,1.3,0.8,{y:20}); draw('s1rule',t,1.7,0.7); }],
+    ['s2',8.0,'02 / 10',(t)=>{ A('s2sec',t,0.3,0.6,{y:16}); rise('s2',t,0.5,{stag:0.1,dur:0.9}); draw('s2acc',t,1.2,0.6);
+        stagger('s2list','.item',t,1.4,0.13,(c,i,lt,a)=>A(c,lt,a,0.6,{x:-34})); }],
+    ['s3',8.0,'03 / 10',(t)=>{ A('s3sec',t,0.3,0.6,{y:16}); rise('s3',t,0.5,{dur:0.95}); draw('s3acc',t,1.2,0.6); A('s3body',t,1.5,0.9,{y:26}); }],
+    ['s4',8.0,'04 / 10',(t)=>{ A('s4sec',t,0.3,0.6,{y:16}); rise('s4',t,0.5,{dur:0.95}); draw('s4acc',t,1.2,0.6);
+        stagger('s4list','.bul',t,1.5,0.18,(c,i,lt,a)=>A(c,lt,a,0.6,{x:-30})); }],
+    ['s5',8.5,'05 / 10',(t)=>{ A('s5sec',t,0.3,0.6,{y:16}); rise('s5',t,0.5,{stag:0.12,dur:0.95}); draw('s5acc',t,1.4,0.6);
+        stagger('s5list','.bul',t,1.7,0.16,(c,i,lt,a)=>A(c,lt,a,0.6,{x:-30})); }],
+    ['s6',9.0,'06 / 10',(t)=>{ A('s6sec',t,0.3,0.6,{y:16}); rise('s6',t,0.5,{dur:0.95});
+        stagger('s6list','.proj',t,1.4,0.22,(c,i,lt,a)=>A(c,lt,a,0.7,{y:30})); }],
+    ['s7',7.5,'07 / 10',(t)=>{ A('s7sec',t,0.3,0.6,{y:16}); rise('s7',t,0.5,{dur:0.95}); draw('s7acc',t,1.2,0.6);
+        stagger('s7tags','.tag',t,1.5,0.1,(c,i,lt,a)=>A(c,lt,a,0.55,{y:24})); }],
+    ['s8',8.0,'08 / 10',(t)=>{ A('s8sec',t,0.3,0.6,{y:16}); rise('s8',t,0.5,{dur:0.95});
+        const tg=[[ 'st1',12,'','sb1'],['st2',3,'','sb2'],['st3',40,'%','sb3'],['st4',5,'','sb4']];
+        tg.forEach((s,i)=>{ const a=1.5+i*0.22; A(g(s[0]).parentElement,t,a,0.6,{y:26}); count(s[0],t,a+0.1,1.0,s[1],s[2]); draw(s[3],t,a+0.2,0.7); }); }],
+    ['s9',8.0,'09 / 10',(t)=>{ A('s9sec',t,0.3,0.6,{y:16}); rise('s9q',t,0.6,{stag:0.16,dur:1.0}); A('s9attr',t,2.2,0.8,{x:-30}); }],
+    ['s10',7.0,'Thank You',(t)=>{ rise('s10big',t,0.4,{dur:1.0}); A('s10c',t,1.4,0.9,{y:22}); }],
+  ];
+  let acc=0; const SCENES=SC.map(([id,dur,fbr,fn])=>{ const o={id,t0:acc,t1:acc+dur,fbr,fn,el:g(id)}; acc+=dur; return o; });
+  const TOTAL=acc; window.TOTAL_S=TOTAL; window.OPAQUE=true;
+
+  const FIN=0.5, FOUT=0.45;
+  function seek(t){
+    t=clamp(t,0,TOTAL);
+    g('bar').style.width=(t/TOTAL*1920)+'px';
+    // frame fade-in + draw
+    const fo=eq(clamp((t-0.3)/0.8,0,1));
+    ['ftl','ftr','fbl','fbr'].forEach(id=>{ g(id).style.opacity=fo; g(id).style.transform=`translateY(${(1-fo)*-10}px)`; });
+    draw('ftrule',t,0.5,0.9);
+
+    let active=SCENES[0];
+    for(const s of SCENES){
+      const live = t>=s.t0-0.001 && t<s.t1+0.001;
+      if(!live){ if(s.el.classList.contains('live')) s.el.classList.remove('live'); continue; }
+      if(!s.el.classList.contains('live')) s.el.classList.add('live');
+      active=s;
+      const fi=clamp((t-s.t0)/FIN,0,1), foo=clamp((s.t1-t)/FOUT,0,1);
+      s.el.style.opacity=Math.min(eq(fi),eq(foo));
+      const lt=t-s.t0;
+      // ghost parallax
+      const gh=s.el.querySelector('.ghost');
+      if(gh){ const ge=eq(clamp((lt-0.2)/1.2,0,1)); gh.style.transform=`translate(${lerp(120,0,ge)}px,-50%)`; }
+      s.fn(lt);
+    }
+    g('fbr').textContent = active.fbr;
+  }
+  window.seek=seek; seek(0);
+
+  function fit(){ const s=Math.min(window.innerWidth/1920, window.innerHeight/1080); g('app').style.transform='scale('+s+')'; }
+  fit(); window.addEventListener('resize',fit);
+  document.fonts.ready.then(()=>{ window.FONTS_READY=true; });
+
+  if(!window.RENDER){
+    let playing=true, clock=0, last=null;
+    function frame(ts){ if(last==null) last=ts; let dt=(ts-last)/1000; last=ts; if(dt>0.25) dt=1/60;
+      if(playing){ clock+=dt; if(clock>=TOTAL){ clock=TOTAL; playing=false; } seek(clock); } requestAnimationFrame(frame); }
+    requestAnimationFrame(frame);
+    function sceneAt(t){ for(let i=SCENES.length-1;i>=0;i--) if(t>=SCENES[i].t0) return i; return 0; }
+    addEventListener('keydown',e=>{
+      if(e.code==='Space'){ e.preventDefault(); if(clock>=TOTAL){clock=0;} playing=!playing; last=null; }
+      else if(e.code==='ArrowRight'){ const i=sceneAt(clock); clock=SCENES[Math.min(i+1,SCENES.length-1)].t0; seek(clock); }
+      else if(e.code==='ArrowLeft'){ const i=sceneAt(clock); clock=SCENES[Math.max(i-1,0)].t0; seek(clock); }
+      else if(e.key.toLowerCase()==='r'){ clock=0; playing=true; last=null; }
+    });
+    addEventListener('click',()=>{ if(clock>=TOTAL){clock=0;playing=true;last=null;return;} playing=!playing; last=null; });
+  }
+</script>
+</body>
+</html>

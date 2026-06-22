@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>overlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --white:#f6f6f6; --gray:#d2d2d2; --amber:#e8a33c; --select:#2f9bf5;
+    --card:rgba(20,20,24,.82); --line:rgba(255,255,255,.12);
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ width:1920px; height:1080px; }
+  body{
+    background:transparent; overflow:hidden;
+    font-family:"Fredoka",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    color:var(--white);
+  }
+  #stage{ position:relative; width:1920px; height:1080px; }
+
+  /* ---- top progress bar ---- */
+  #progress{ position:absolute; top:0; left:0; height:6px; width:0;
+    background:linear-gradient(90deg,#e8a33c,#f0c070); box-shadow:0 0 14px rgba(232,163,60,.6); }
+
+  /* ---- bottom scrim for subtitle legibility ---- */
+  #scrim{ position:absolute; left:0; right:0; bottom:0; height:360px;
+    background:linear-gradient(to top, rgba(8,8,10,.78), rgba(8,8,10,0)); }
+
+  /* ---- brand tag ---- */
+  #brand{ position:absolute; right:42px; bottom:40px; font-size:22px; font-weight:600;
+    letter-spacing:3px; color:rgba(255,255,255,.55); }
+  #brand b{ color:var(--amber); }
+
+  /* ---- top-left graphic zone ---- */
+  #zone{ position:absolute; left:70px; top:96px; width:840px; height:430px; }
+  .mod{ position:absolute; left:0; top:0; opacity:0; will-change:opacity,transform; }
+
+  /* title card */
+  #m-title .row{ display:flex; align-items:center; }
+  .editbox{ position:relative; display:inline-block; padding:14px 26px;
+    background:var(--card); border-radius:16px; border:1px solid var(--line);
+    box-shadow:0 18px 50px rgba(0,0,0,.45); }
+  .editbox .sel{ position:absolute; inset:-9px -12px; border:2px solid var(--select);
+    border-radius:6px; opacity:0; }
+  .editbox.selected .sel{ opacity:1; }
+  .sel i{ position:absolute; width:9px; height:9px; background:#fff;
+    border:2px solid var(--select); border-radius:1px; }
+  .sel .tl{ top:-5px; left:-5px;} .sel .br{ bottom:-5px; right:-5px;}
+  .ttl{ font-size:62px; font-weight:600; letter-spacing:.5px; white-space:nowrap; }
+  .ttl .amber{ color:var(--amber); }
+  .caret{ display:inline-block; width:3px; height:.95em; background:var(--select);
+    margin-left:3px; transform:translateY(.12em); vertical-align:middle; }
+
+  /* generic callout card */
+  .callout{ display:flex; align-items:center; gap:20px; padding:22px 30px;
+    background:var(--card); border-left:6px solid var(--amber); border-radius:14px;
+    border-top:1px solid var(--line); border-right:1px solid var(--line); border-bottom:1px solid var(--line);
+    box-shadow:0 18px 50px rgba(0,0,0,.45); }
+  .callout .ic{ font-size:46px; line-height:1; }
+  .callout .tx{ display:flex; flex-direction:column; }
+  .callout .k{ font-size:42px; font-weight:600; color:#fff; white-space:nowrap; }
+  .callout .s{ font-size:24px; font-weight:300; color:var(--gray); margin-top:2px; white-space:nowrap; }
+  .callout .k .amber{ color:var(--amber); }
+
+  /* logos row */
+  #m-logos .lrow{ display:flex; gap:22px; }
+  .logocard{ width:228px; padding:26px 18px 20px; background:var(--card);
+    border:1px solid var(--line); border-radius:18px; box-shadow:0 18px 50px rgba(0,0,0,.45);
+    display:flex; flex-direction:column; align-items:center; gap:14px; opacity:0;
+    will-change:opacity,transform; }
+  .logocard svg{ width:62px; height:62px; }
+  .logocard .lname{ font-size:30px; font-weight:500; }
+
+  /* count-up */
+  .bignum{ font-size:64px; font-weight:700; color:var(--amber);
+    font-variant-numeric:tabular-nums; line-height:1; white-space:nowrap; }
+
+  /* flow diagram */
+  #m-flow .frow{ display:flex; align-items:center; gap:18px; }
+  .fnode{ padding:20px 26px; background:var(--card); border:1px solid var(--line);
+    border-radius:14px; font-size:34px; font-weight:600; box-shadow:0 16px 44px rgba(0,0,0,.45);
+    opacity:0; will-change:opacity,transform; display:flex; align-items:center; gap:12px; white-space:nowrap; }
+  .fnode .di{ font-size:30px; }
+  .farrow{ font-size:40px; color:var(--amber); opacity:0; will-change:opacity; font-weight:700; }
+  .fnode.n2{ border-color:rgba(232,163,60,.5); }
+  .fnode.n3{ border-color:rgba(47,155,245,.5); }
+
+  /* ---- subtitles ---- */
+  #subs{ position:absolute; left:0; right:0; bottom:78px; display:flex; justify-content:center; }
+  #subline{ max-width:1500px; text-align:center; line-height:1.3;
+    font-size:46px; font-weight:500; padding:14px 34px; border-radius:16px;
+    background:rgba(10,10,12,.55); box-shadow:0 10px 40px rgba(0,0,0,.4);
+    text-shadow:0 2px 10px rgba(0,0,0,.7); opacity:0; }
+  #subline .w{ color:rgba(255,255,255,.5); transition:none; margin:0 2px; }
+  #subline .w.spoken{ color:#ffffff; }
+  #subline .w.active{ color:var(--amber); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="scrim"></div>
+  <div id="progress"></div>
+  <div id="brand"><b>AI</b> ACADEMY</div>
+
+  <div id="zone">
+    <!-- intro title -->
+    <div class="mod" id="m-title">
+      <div class="row">
+        <div class="editbox" id="tbox">
+          <span class="sel"><i class="tl"></i><i class="br"></i></span>
+          <span class="ttl"><span id="ttl-text"></span><span class="caret" id="tcaret"></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- brain lower third -->
+    <div class="mod" id="m-brain">
+      <div class="callout">
+        <div class="ic">🧠</div>
+        <div class="tx"><div class="k">The <span class="amber">Brain</span> of the AI</div>
+          <div class="s">every AI tool runs on a model</div></div>
+      </div>
+    </div>
+
+    <!-- logos -->
+    <div class="mod" id="m-logos">
+      <div class="lrow">
+        <div class="logocard" id="lc-gem">
+          <svg viewBox="0 0 24 24"><defs><linearGradient id="gg" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4796E3"/><stop offset=".5" stop-color="#8B6FD6"/><stop offset="1" stop-color="#D96570"/></linearGradient></defs><path fill="url(#gg)" d="M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81"/></svg>
+          <div class="lname">Gemini</div>
+        </div>
+        <div class="logocard" id="lc-gpt">
+          <svg viewBox="0 0 24 24"><path fill="#ffffff" d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.0201 1.1685a.0719.0719 0 0 1 .0407.0606v5.5826a4.504 4.504 0 0 1-4.4994 4.4831zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.1419.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0312.0633l-4.8338 2.7896a4.504 4.504 0 0 1-6.1497-1.6499zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7926a4.504 4.504 0 0 1-1.6464-6.1485zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7926a4.4992 4.4992 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0312-.0656l4.8303-2.7858a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0852.0852 0 0 1-.0407-.0653V6.0738a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997z"/></svg>
+          <div class="lname">ChatGPT</div>
+        </div>
+        <div class="logocard" id="lc-cla">
+          <svg viewBox="0 0 24 24"><path fill="#D97757" d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg>
+          <div class="lname">Claude</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- accepts input -->
+    <div class="mod" id="m-input">
+      <div class="callout"><div class="ic">⌨️</div>
+        <div class="tx"><div class="k">Accepts your <span class="amber">input</span></div>
+          <div class="s">you give it an instruction →</div></div></div>
+    </div>
+
+    <!-- massive datasets -->
+    <div class="mod" id="m-data">
+      <div class="callout"><div class="ic">📚</div>
+        <div class="tx"><div class="k">Trained on <span class="amber">massive datasets</span></div>
+          <div class="s">learned patterns from enormous data</div></div></div>
+    </div>
+
+    <!-- billions count-up -->
+    <div class="mod" id="m-bill">
+      <div class="callout"><div class="ic">🔢</div>
+        <div class="tx"><div class="bignum" id="billnum">0</div>
+          <div class="s">data points learned during training</div></div></div>
+    </div>
+
+    <!-- flow -->
+    <div class="mod" id="m-flow">
+      <div class="frow">
+        <div class="fnode n1" id="fn1"><span class="di">📝</span>Instruction</div>
+        <div class="farrow" id="fa1">➜</div>
+        <div class="fnode n2" id="fn2"><span class="di">⚙️</span>Perform</div>
+        <div class="farrow" id="fa2">➜</div>
+        <div class="fnode n3" id="fn3"><span class="di">🔍</span>Analyze</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- subtitles -->
+  <div id="subs"><div id="subline"></div></div>
+</div>
+
+<script>
+  const TOTAL = 30.5305;            // seconds (source duration)
+  window.TOTAL_S = TOTAL;
+  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+  const easeOut=x=>1-Math.pow(1-x,3);
+  const easeOutBack=x=>{const c=1.7;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2);};
+
+  // generic window opacity + entrance offset
+  function show(el, t, a, b, {fin=0.32,fout=0.32,rise=22,back=false}={}){
+    if(t<a-0.001||t>b+0.001){ el.style.opacity=0; return 0; }
+    const eIn=clamp((t-a)/fin,0,1);
+    const eOut=clamp((b-t)/fout,0,1);
+    const o=Math.min(eIn,eOut);
+    el.style.opacity=o;
+    const p=back?easeOutBack(eIn):easeOut(eIn);
+    el.style.transform=`translateY(${(1-p)*rise}px)`;
+    return o;
+  }
+  function pop(el,t,a,b,{fin=0.34,fout=0.3}={}){
+    if(t<a-0.001||t>b+0.001){ el.style.opacity=0; return; }
+    const eIn=clamp((t-a)/fin,0,1), eOut=clamp((b-t)/fout,0,1);
+    el.style.opacity=Math.min(eIn,eOut);
+    const s=0.86+0.14*easeOutBack(eIn);
+    el.style.transform=`translateY(${(1-easeOut(eIn))*16}px) scale(${s})`;
+  }
+
+  // ---------- title typing ----------
+  const TITLE=[{t:"What is a "},{t:"Model",cls:"amber"},{t:"?"}];
+  const tflat=[]; TITLE.forEach(s=>{for(const ch of s.t) tflat.push({ch,cls:s.cls});});
+  const T_TYPE_A=0.45, T_TYPE_B=1.30;       // typing window
+  function renderTitle(n){
+    let html='',cur=null,buf='';
+    const fl=()=>{ if(buf){ html+=cur?`<span class="${cur}">${buf}</span>`:buf; buf=''; } };
+    for(let i=0;i<n;i++){const c=tflat[i]; if(c.cls!==cur){fl();cur=c.cls;} buf+=c.ch;}
+    fl(); return html;
+  }
+  const ttlText=document.getElementById('ttl-text');
+  const tcaret=document.getElementById('tcaret');
+  const tbox=document.getElementById('tbox');
+
+  // ---------- subtitles ----------
+  // [word, t0, t1] ; lines auto-advance
+  const LINES=[
+    [["Next,",0,0.4],["what",0.7,0.82],["is",0.82,0.98],["a",0.98,1.08],["model?",1.08,1.4]],
+    [["Model",1.92,2.24],["is",2.24,2.56],["the",2.56,2.74],["brain",2.74,3.06],["of",3.06,3.26],["the",3.26,3.44],["AI",3.44,3.56],["tool.",3.56,3.9]],
+    [["If",4.3,4.7],["you",4.7,4.78],["use",4.78,5.38],["AI",5.58,5.78],["tools",5.78,6.08],["like",6.08,6.38]],
+    [["Gemini,",6.38,7.0],["ChatGPT,",7.14,7.7],["Claude",7.9,8.3]],
+    [["whatever",8.34,8.7],["the",8.7,8.94],["tool,",8.94,9.4]],
+    [["you're",10.06,10.4],["actually",10.4,10.74],["interacting",10.74,11.0],["with",11.0,11.26],["the",11.26,11.42],["models.",11.42,11.9]],
+    [["The",12.24,12.6],["model",12.6,12.96],["does",12.96,13.1],["what?",13.1,13.5]],
+    [["It",13.6,13.7],["accepts",13.7,14.2],["your",14.2,14.3],["input.",14.3,14.7]],
+    [["So","14.86","15.14"],["the",15.14,15.24],["model",15.24,15.78],["is",15.78,15.9],["actually",15.9,16.24],["trained",16.24,16.66]],
+    [["with",16.66,16.86],["massive",16.86,17.38],["datasets.",17.38,18.1]],
+    [["It",18.46,18.6],["actually",18.6,18.96],["has",18.96,19.26],["billions",19.26,19.98],["of",19.98,20.36],["data,",20.36,20.7]],
+    [["and",20.7,21.32],["is",21.32,21.46],["trained",21.6,22.16],["to",22.16,22.42],["perform",22.42,22.86],["tasks",22.86,23.38]],
+    [["based",23.38,23.74],["on",23.74,23.9],["that",23.9,24.06],["data.",24.06,24.5]],
+    [["If",24.8,25.3],["you",25.3,25.4],["give",25.4,25.6],["an",25.6,25.76],["instruction,",25.76,26.4]],
+    [["it",26.78,26.88],["can",26.88,27.0],["perform",27.0,27.48],["and",27.48,28.16],["analyze",28.16,28.6],["the",28.6,28.82],["input.",28.82,29.5]],
+  ].map(line=>line.map(w=>[w[0],+w[1],+w[2]]));
+
+  const lineStart = LINES.map(l=>l[0][1]);
+  const subline=document.getElementById('subline');
+
+  function renderSubs(t){
+    // find active line: last line whose start-0.25 <= t
+    let idx=-1;
+    for(let i=0;i<LINES.length;i++){ if(t>=lineStart[i]-0.28) idx=i; }
+    if(idx<0){ subline.style.opacity=0; return; }
+    const line=LINES[idx];
+    const lend=line[line.length-1][2];
+    const nextStart = idx<LINES.length-1 ? lineStart[idx+1]-0.28 : TOTAL;
+    // fade
+    let op=1;
+    op*=clamp((t-(lineStart[idx]-0.28))/0.18,0,1);
+    if(idx===LINES.length-1) op*=clamp((TOTAL-0.2-t)/0.4,0,1);
+    subline.style.opacity=op;
+    let html='';
+    for(const [w,a,b] of line){
+      let cls='w';
+      if(t>=b) cls+=' spoken';
+      else if(t>=a) cls+=' active';
+      html+=`<span class="${cls}">${w}</span> `;
+    }
+    subline.innerHTML=html;
+  }
+
+  // ---------- counter ----------
+  const billnum=document.getElementById('billnum');
+  function fmt(n){ return Math.round(n).toLocaleString('en-US'); }
+
+  // ---------- main seek ----------
+  window.seek=function(t){
+    // progress
+    document.getElementById('progress').style.width=(clamp(t/TOTAL,0,1)*1920)+'px';
+
+    // intro title
+    const oT=show(document.getElementById('m-title'),t,0.25,2.2,{rise:18});
+    if(oT>0){
+      const typed=clamp((t-T_TYPE_A)/(T_TYPE_B-T_TYPE_A),0,1);
+      const n=Math.round(typed*tflat.length);
+      ttlText.innerHTML=renderTitle(n);
+      const typing = t>=T_TYPE_A && t<T_TYPE_B;
+      tbox.classList.toggle('selected', t<1.95);
+      tcaret.style.opacity = (typing && (Math.floor(t*1000)%1000)<520)?1:0;
+      if(t>=T_TYPE_B) tcaret.style.opacity=0;
+    }
+
+    // brain
+    show(document.getElementById('m-brain'),t,2.45,6.0,{rise:24});
+
+    // logos (staggered cards)
+    const oL=show(document.getElementById('m-logos'),t,6.2,10.0,{fin:0.25,fout:0.35,rise:0});
+    if(oL>0){
+      pop(document.getElementById('lc-gem'),t,6.3,9.95,{fin:0.3});
+      pop(document.getElementById('lc-gpt'),t,7.0,9.95,{fin:0.3});
+      pop(document.getElementById('lc-cla'),t,7.75,9.95,{fin:0.3});
+    }
+
+    // accepts input
+    show(document.getElementById('m-input'),t,13.45,15.7,{rise:20,back:true});
+    // massive datasets
+    show(document.getElementById('m-data'),t,16.3,18.75,{rise:20,back:true});
+    // billions count-up
+    const oB=show(document.getElementById('m-bill'),t,18.95,21.7,{rise:20,back:true});
+    if(oB>0){
+      const cp=clamp((t-19.15)/1.25,0,1);
+      const val=easeOut(cp)*1.0e9;
+      billnum.textContent = cp>=1 ? '1,000,000,000+' : fmt(val);
+    }
+
+    // flow
+    const oF=show(document.getElementById('m-flow'),t,25.3,30.45,{fin:0.25,fout:0.4,rise:0});
+    if(oF>0){
+      pop(document.getElementById('fn1'),t,25.6,30.4,{fin:0.28});
+      pop(document.getElementById('fn2'),t,27.0,30.4,{fin:0.28});
+      pop(document.getElementById('fn3'),t,28.16,30.4,{fin:0.28});
+      document.getElementById('fa1').style.opacity=clamp((t-26.6)/0.3,0,1)*clamp((30.4-t)/0.4,0,1);
+      document.getElementById('fa2').style.opacity=clamp((t-27.8)/0.3,0,1)*clamp((30.4-t)/0.4,0,1);
+    }
+
+    // subtitles
+    renderSubs(t);
+  };
+
+  window.seek(0);
+  document.fonts.ready.then(()=>{ window.FONTS_READY=true; });
+</script>
+</body>
+</html>
