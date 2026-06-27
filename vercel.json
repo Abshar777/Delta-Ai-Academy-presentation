@@ -18,6 +18,7 @@
   ],
   "redirects": [
     { "source": "/keynote", "destination": "/presentation", "permanent": false },
-    { "source": "/bold", "destination": "/delta-bold", "permanent": false }
+    { "source": "/bold", "destination": "/delta-bold", "permanent": false },
+    { "source": "/intro", "destination": "/presentation-intro-dark-oled", "permanent": false }
   ]
 }
