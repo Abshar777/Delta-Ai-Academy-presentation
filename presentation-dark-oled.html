@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Delta AI Academy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#070707; --bg2:#161616; --ink:#F2F2F4; --sub:#9A9AA2; --line:rgba(255,255,255,.09);
+    --grad:linear-gradient(135deg,#21CFC6 0%,#46E0B0 60%,#62E6AC 100%);
+    --accent:#2FD0C6;
+    --surface:#161616; --surface2:#101010; --skel:#262626; --shadow:rgba(0,0,0,.55);
+    --chiptext:#D2D2D8; --muted:#6E6E76; --arrow:#4A4A52;
+    --fd:"DM Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --fb:"DM Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ width:100%; height:100%; overflow:hidden; }
+  body{
+    background:radial-gradient(125% 95% at 12% -6%, var(--bg2) 0%, var(--bg) 55%); color:var(--ink);
+    font-family:var(--fb),-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased; letter-spacing:-0.01em;
+    display:flex; align-items:center; justify-content:center;
+  }
+  /* fixed internal canvas, scaled to fit any screen */
+  #app{ position:relative; width:1920px; height:1080px; overflow:hidden;
+    flex:0 0 auto; transform-origin:center center; }
+
+  .blob{ position:absolute; width:1100px; height:1100px; border-radius:50%;
+    filter:blur(120px); opacity:.5; pointer-events:none; will-change:transform; }
+  #blobA{ background:radial-gradient(circle,#7EE6DA 0%,rgba(126,230,218,0) 65%); top:-380px; left:-220px; }
+  #blobB{ background:radial-gradient(circle,#9BEFC6 0%,rgba(155,239,198,0) 65%); bottom:-460px; right:-260px; }
+  #blobC{ background:radial-gradient(circle,#Bfe7ff 0%,rgba(170,225,255,0) 65%); top:240px; right:-380px; opacity:.32; }
+
+  .scene{ position:absolute; inset:0; display:none; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center;
+    padding:0 180px; will-change:opacity,transform; }
+  .scene.live{ display:flex; }
+  .abscenter{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:0 180px; text-align:center; }
+
+  .kicker{ font-size:30px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--sub); margin-bottom:34px; }
+  .kicker.gradk{ color:var(--accent); }
+
+  .h1{ font-family:var(--fd); font-size:116px; font-weight:700; line-height:1.04; letter-spacing:-0.03em; }
+  .h2{ font-family:var(--fd); font-size:88px; font-weight:700; line-height:1.07; letter-spacing:-0.025em; }
+  .h3{ font-family:var(--fd); font-size:64px; font-weight:600; line-height:1.13; letter-spacing:-0.02em; }
+  .sub{ font-family:var(--fb); font-size:40px; font-weight:400; color:var(--sub); line-height:1.42; margin-top:34px; max-width:1300px; letter-spacing:0; }
+
+  .grad{ color:var(--accent); }
+  .muted{ color:var(--muted); }
+
+  .w{ display:inline-block; will-change:transform,opacity,filter; }
+  .line{ display:block; }
+
+  .chips{ display:flex; flex-wrap:wrap; gap:22px; justify-content:center; margin-top:54px; max-width:1400px; }
+  .chip{ font-size:38px; font-weight:600; padding:18px 40px; border-radius:100px;
+    background:var(--surface); border:1px solid var(--line); color:var(--chiptext);
+    box-shadow:0 12px 40px var(--shadow); will-change:transform,opacity; }
+  .chip .dot{ display:inline-block; width:14px; height:14px; border-radius:50%;
+    background:var(--grad); margin-right:16px; transform:translateY(1px); }
+
+  .goals{ margin-top:48px; display:grid; grid-auto-flow:column; grid-template-rows:repeat(3,auto);
+    column-gap:84px; row-gap:30px; justify-content:center; align-items:center; }
+  .goal{ display:flex; align-items:center; gap:24px; font-size:40px; font-weight:600; will-change:transform,opacity; }
+  .goal svg{ width:44px; height:44px; flex:0 0 44px; }
+
+  /* two-column phase */
+  .pcol{ display:flex; width:100%; max-width:1680px; gap:80px; align-items:center; text-align:left; }
+  .pleft{ flex:1; }
+  .pright{ flex:0 0 600px; display:flex; justify-content:center; }
+  .illus{ width:600px; height:480px; border-radius:34px;
+    background:linear-gradient(160deg,var(--surface),var(--surface2));
+    border:1px solid var(--line); box-shadow:0 30px 90px var(--shadow);
+    display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .illus svg{ width:92%; height:92%; }
+  .pnum2{ font-family:var(--fd); font-size:118px; font-weight:700; line-height:.9; letter-spacing:-0.04em;
+    color:var(--accent); will-change:transform,opacity; }
+  .plabel2{ font-family:var(--fb); font-size:27px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--sub); margin-top:4px; will-change:transform,opacity; }
+  .ptitle2{ font-family:var(--fd); font-size:58px; font-weight:700; letter-spacing:-0.025em; line-height:1.06; margin-top:14px; will-change:transform,opacity; }
+  .pdesc2{ font-family:var(--fb); font-size:33px; font-weight:400; color:var(--sub); line-height:1.42; margin-top:22px; max-width:760px; will-change:transform,opacity; }
+  .points{ margin-top:30px; display:flex; flex-direction:column; gap:18px; }
+  .point{ display:flex; align-items:center; gap:20px; font-size:33px; font-weight:600; will-change:transform,opacity; }
+  .point svg{ width:36px; height:36px; flex:0 0 36px; }
+
+  /* cost */
+  .cost{ display:flex; gap:34px; margin-top:54px; align-items:stretch; justify-content:center; }
+  .costcard{ background:var(--surface); border:1px solid var(--line); border-radius:26px; padding:36px 50px;
+    box-shadow:0 18px 60px var(--shadow); min-width:540px; will-change:transform,opacity; }
+  .costcard .ct{ font-size:30px; font-weight:600; color:var(--sub); }
+  .costcard .cv{ font-family:var(--fd); font-size:74px; font-weight:700; letter-spacing:-0.025em; margin-top:10px; }
+  .costcard.b{ border:0; background:var(--grad); color:#fff; }
+  .costcard.b .ct{ color:rgba(255,255,255,.85); }
+  .costarrow{ display:flex; align-items:center; font-size:70px; color:var(--arrow); font-weight:300; will-change:opacity,transform; }
+
+  /* svg helpers */
+  [data-spin]{ transform-box:fill-box; transform-origin:center; }
+
+  .brandlogo{ width:620px; height:auto; will-change:transform,opacity,clip-path; }
+
+  #bar{ position:absolute; left:0; bottom:0; height:5px; width:0; background:var(--grad); }
+  #hint{ position:absolute; right:48px; bottom:40px; font-size:24px; color:var(--muted); font-weight:500; opacity:0; transition:opacity .6s; }
+
+  /* dark-theme recolors for inline SVG illustrations (CSS overrides SVG fill= attributes) */
+  #v1win,#v2card{ fill:var(--surface); }
+  #v3n1>circle,#v3n2>circle,#v3n3>circle{ fill:var(--surface); }
+  #v3g1 circle,#v3g2 circle{ fill:var(--surface); }
+  #v1bar line{ stroke:var(--line); }
+  #v1h{ fill:var(--ink); }
+  #v1l1,#v1l2,#v1t1,#v1t2{ fill:var(--skel); }
+  #sv2 rect:not([id]){ fill:var(--skel); }
+  #v1cur{ fill:var(--ink); stroke:var(--bg); }
+  #v3dot2{ fill:var(--accent); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="blob" id="blobA"></div>
+  <div class="blob" id="blobB"></div>
+  <div class="blob" id="blobC"></div>
+
+  <svg width="0" height="0" style="position:absolute"><defs>
+    <linearGradient id="deltaGrad" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#1FC9C2"/><stop offset=".55" stop-color="#46E0B0"/><stop offset="1" stop-color="#64E6AA"/>
+    </linearGradient>
+  </defs></svg>
+
+  <!-- S1 -->
+  <section class="scene" id="s1">
+    <div class="kicker" id="s1k">Good morning</div>
+    <div class="h1"><div class="line rw" id="s1a">Tomorrow is Monday.</div></div>
+    <div class="sub" id="s1b">A working day.</div>
+  </section>
+
+  <!-- S2 -->
+  <section class="scene" id="s2">
+    <div class="h2"><div class="line rw" id="s2a">You know what that means.</div></div>
+    <div class="chips" id="s2chips">
+      <div class="chip"><span class="dot"></span>pending tasks</div>
+      <div class="chip"><span class="dot"></span>deadlines</div>
+      <div class="chip"><span class="dot"></span>meetings</div>
+      <div class="chip"><span class="dot"></span>responsibilities</div>
+      <div class="chip"><span class="dot"></span>stress</div>
+    </div>
+  </section>
+
+  <!-- S3 -->
+  <section class="scene" id="s3">
+    <div class="h2">
+      <div class="line rw" id="s3a">What if you had an assistant</div>
+      <div class="line rw" id="s3b">that works <span class="grad">exactly the way you do?</span></div>
+    </div>
+  </section>
+
+  <!-- S4 -->
+  <section class="scene" id="s4">
+    <div class="h1">
+      <div class="line" id="s4a"><span class="grad">Anytime.</span></div>
+      <div class="line" id="s4b"><span class="grad">Anywhere.</span></div>
+      <div class="line" id="s4c"><span class="grad">Almost any task.</span></div>
+    </div>
+    <div class="sub" id="s4d">Even when you don't know where to start.</div>
+  </section>
+
+  <!-- S5 -->
+  <section class="scene" id="s5">
+    <div class="h2 muted" id="s5a">Most people think that's impossible.</div>
+    <div class="abscenter"><div class="h1" id="s5b">But it <span class="grad">already exists.</span></div></div>
+  </section>
+
+  <!-- S6 AI reveal + neural orbit -->
+  <section class="scene" id="s6">
+    <svg id="sv6" viewBox="0 0 300 200" style="width:300px;height:200px;margin-bottom:26px;overflow:visible">
+      <g id="v6rings" fill="none" stroke="url(#deltaGrad)" stroke-width="2" opacity=".5">
+        <ellipse id="v6r1" cx="150" cy="100" rx="120" ry="42"/>
+        <ellipse id="v6r2" cx="150" cy="100" rx="120" ry="42" transform="rotate(60 150 100)"/>
+        <ellipse id="v6r3" cx="150" cy="100" rx="120" ry="42" transform="rotate(120 150 100)"/>
+      </g>
+      <circle id="v6core" cx="150" cy="100" r="20" fill="url(#deltaGrad)"/>
+      <circle id="v6e1" r="9" fill="#00294F"/>
+      <circle id="v6e2" r="9" fill="#21CFC6"/>
+      <circle id="v6e3" r="9" fill="#5CE6AC"/>
+    </svg>
+    <div class="kicker gradk" id="s6k">Meet your 24/7 assistant</div>
+    <div class="h1"><div class="line rw" id="s6a"><span class="grad">Artificial Intelligence</span></div></div>
+    <div class="sub" id="s6b">Knowledge across countless subjects — sometimes a smarter version of you.</div>
+  </section>
+
+  <!-- S7 -->
+  <section class="scene" id="s7">
+    <div class="kicker" id="s7k">But the real question is</div>
+    <div class="h2" style="line-height:1.18">
+      <div class="line" id="s7a">How do we <span class="grad">use</span> it?</div>
+      <div class="line" id="s7b">Where do we <span class="grad">start?</span></div>
+      <div class="line" id="s7c">How do we unlock its <span class="grad">full potential?</span></div>
+    </div>
+  </section>
+
+  <!-- S8 brand drop -->
+  <section class="scene" id="s8">
+    <img class="brandlogo" id="s8logo" src="assets/delta-logo-white.png" alt="Delta AI Academy" />
+    <div class="sub" id="s8tag" style="margin-top:58px">Learn to command AI — at its highest quality.</div>
+  </section>
+
+  <!-- S9 mission -->
+  <section class="scene" id="s9" style="align-items:center">
+    <div class="h3" style="max-width:1500px">
+      <div class="line rw" id="s9a">We teach you to control, guide, and master AI —</div>
+      <div class="line rw" id="s9b"><span class="grad">at its highest quality.</span></div>
+    </div>
+    <div class="goals" id="s9goals">
+      <div class="goal"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Master AI</div>
+      <div class="goal"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Scale your skills</div>
+      <div class="goal"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Boost your productivity</div>
+      <div class="goal"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Turn big tasks into small ones</div>
+      <div class="goal"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Build your own AI workflows &amp; assistants</div>
+    </div>
+  </section>
+
+  <!-- S10 structure -->
+  <section class="scene" id="s10">
+    <div class="kicker" id="s10k">The Academy Structure</div>
+    <div class="h1"><div class="line rw" id="s10a"><span class="grad">Three Phases.</span></div></div>
+  </section>
+
+  <!-- S11 Phase 1 (elaborated) -->
+  <section class="scene" id="s11">
+    <div class="pcol">
+      <div class="pleft">
+        <div class="pnum2" id="p1num">01</div>
+        <div class="plabel2" id="p1lab">Phase One · Software Engineering</div>
+        <div class="ptitle2" id="p1title">Build software<br/>without code.</div>
+        <div class="pdesc2" id="p1desc">Turn your ideas, visions and business concepts into real applications — without writing a single line of code.</div>
+        <div class="points" id="p1points">
+          <div class="point"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Production-ready apps, websites &amp; SaaS</div>
+          <div class="point"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Your ideas — built anytime you want</div>
+          <div class="point"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>No agencies, no waiting, no extra charges</div>
+        </div>
+      </div>
+      <div class="pright"><div class="illus">
+        <svg id="sv1" viewBox="0 0 520 460">
+          <g id="v1float">
+            <rect id="v1win" x="70" y="60" width="380" height="300" rx="20" fill="#ffffff" stroke="url(#deltaGrad)" stroke-width="3" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
+            <g id="v1bar">
+              <line x1="70" y1="104" x2="450" y2="104" stroke="#e7e7ee" stroke-width="2"/>
+              <circle cx="98" cy="82" r="6" fill="#ff5f57" data-c/><circle cx="120" cy="82" r="6" fill="#febc2e" data-c/><circle cx="142" cy="82" r="6" fill="#28c840" data-c/>
+            </g>
+            <g id="v1content">
+              <rect id="v1h" x="98" y="128" width="170" height="22" rx="6" fill="#1d1d1f"/>
+              <rect id="v1l1" x="98" y="166" width="324" height="12" rx="6" fill="#dfe0e8"/>
+              <rect id="v1l2" x="98" y="188" width="270" height="12" rx="6" fill="#e7e8ef"/>
+              <rect id="v1img" x="98" y="222" width="150" height="100" rx="12" fill="url(#deltaGrad)" opacity=".9"/>
+              <rect id="v1t1" x="270" y="226" width="152" height="12" rx="6" fill="#dfe0e8"/>
+              <rect id="v1t2" x="270" y="250" width="120" height="12" rx="6" fill="#e7e8ef"/>
+              <rect id="v1btn" x="270" y="286" width="152" height="40" rx="12" fill="url(#deltaGrad)"/>
+            </g>
+            <path id="v1cur" d="M0 0 L0 22 L6 16 L10 24 L13 22 L9 15 L17 15 Z" fill="#1d1d1f" stroke="#fff" stroke-width="1.2" opacity="0"/>
+          </g>
+        </svg>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- S11b Phase 1 cost -->
+  <section class="scene" id="s11b">
+    <div class="kicker gradk" id="p1bk">Phase One · The Difference</div>
+    <div class="h2"><div class="line rw" id="p1bh">Build it for a <span class="grad">fraction of the cost.</span></div></div>
+    <div class="cost">
+      <div class="costcard" id="p1ca"><div class="ct">Agency / freelancer</div><div class="cv">₹1,00,000+</div></div>
+      <div class="costarrow" id="p1arr">→</div>
+      <div class="costcard b" id="p1cb"><div class="ct">With Delta AI skills</div><div class="cv">A fraction.</div></div>
+    </div>
+    <div class="sub" id="p1bs">Build, launch and maintain many projects — entirely on your own.</div>
+  </section>
+
+  <!-- S12 Phase 2 -->
+  <section class="scene" id="s12">
+    <div class="pcol">
+      <div class="pleft">
+        <div class="pnum2" id="p2num">02</div>
+        <div class="plabel2" id="p2lab">Phase Two · Creative</div>
+        <div class="ptitle2" id="p2title">Marketing, video<br/>&amp; motion graphics.</div>
+        <div class="pdesc2" id="p2desc">Create marketing content, ads and cinematic-quality video — faster than ever before.</div>
+        <div class="points" id="p2points">
+          <div class="point"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Ads &amp; marketing campaigns</div>
+          <div class="point"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Videos &amp; motion graphics</div>
+          <div class="point"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Cinematic-quality content</div>
+        </div>
+      </div>
+      <div class="pright"><div class="illus">
+        <svg id="sv2" viewBox="0 0 520 460">
+          <rect id="v2card" x="70" y="80" width="380" height="240" rx="22" fill="#ffffff" stroke="url(#deltaGrad)" stroke-width="3" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
+          <circle id="v2pbg" cx="260" cy="162" r="46" fill="url(#deltaGrad)" opacity="0"/>
+          <path id="v2play" d="M247 141 L291 162 L247 183 Z" fill="#fff" opacity="0"/>
+          <g id="v2wave"></g>
+          <rect x="98" y="292" width="324" height="8" rx="4" fill="#e7e8ef"/>
+          <rect id="v2prog" x="98" y="292" width="0" height="8" rx="4" fill="url(#deltaGrad)"/>
+          <circle id="v2knob" cx="98" cy="296" r="9" fill="#1FC9C2" opacity="0"/>
+        </svg>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- S13 Phase 3 -->
+  <section class="scene" id="s13">
+    <div class="pcol">
+      <div class="pleft">
+        <div class="pnum2" id="p3num">03</div>
+        <div class="plabel2" id="p3lab">Phase Three · Systems</div>
+        <div class="ptitle2" id="p3title">Automation &amp;<br/>workflow systems.</div>
+        <div class="pdesc2" id="p3desc">Automate repetitive daily tasks and build intelligent workflows that save time and run on their own.</div>
+        <div class="points" id="p3points">
+          <div class="point"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Automate repetitive daily tasks</div>
+          <div class="point"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Intelligent, time-saving workflows</div>
+          <div class="point"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Built on your Phase 1 skills</div>
+        </div>
+      </div>
+      <div class="pright"><div class="illus">
+        <svg id="sv3" viewBox="0 0 520 460">
+          <g id="v3lines" fill="none" stroke="url(#deltaGrad)" stroke-width="3" stroke-linecap="round" stroke-dasharray="9 9">
+            <path id="v3p1" d="M120 230 C 180 230, 200 150, 260 150" pathLength="100"/>
+            <path id="v3p2" d="M120 230 C 180 230, 200 310, 260 310" pathLength="100"/>
+            <path id="v3p3" d="M300 150 C 360 150, 360 230, 410 230" pathLength="100"/>
+            <path id="v3p4" d="M300 310 C 360 310, 360 230, 410 230" pathLength="100"/>
+          </g>
+          <g id="v3n1" data-node><circle cx="120" cy="230" r="34" fill="#fff" stroke="url(#deltaGrad)" stroke-width="3"/>
+            <rect x="106" y="214" width="28" height="32" rx="4" fill="none" stroke="#1FC9C2" stroke-width="3"/><line x1="112" y1="224" x2="128" y2="224" stroke="#1FC9C2" stroke-width="3"/><line x1="112" y1="232" x2="128" y2="232" stroke="#1FC9C2" stroke-width="3"/></g>
+          <g id="v3n2" data-node><circle cx="280" cy="150" r="34" fill="#fff" stroke="url(#deltaGrad)" stroke-width="3"/>
+            <g data-spin id="v3g1"><path d="M280 132 l4 0 1 6 5 2 5-3 3 3-3 5 2 5 6 1 0 4-6 1-2 5 3 5-3 3-5-3-5 2-1 6-4 0-1-6-5-2-5 3-3-3 3-5-2-5-6-1 0-4 6-1 2-5-3-5 3-3 5 3 5-2z" fill="#1FC9C2"/><circle cx="280" cy="150" r="6" fill="#fff"/></g></g>
+          <g id="v3n3" data-node><circle cx="280" cy="310" r="34" fill="#fff" stroke="url(#deltaGrad)" stroke-width="3"/>
+            <g data-spin id="v3g2"><path d="M280 292 l4 0 1 6 5 2 5-3 3 3-3 5 2 5 6 1 0 4-6 1-2 5 3 5-3 3-5-3-5 2-1 6-4 0-1-6-5-2-5 3-3-3 3-5-2-5-6-1 0-4 6-1 2-5-3-5 3-3 5 3 5-2z" fill="#46E0B0"/><circle cx="280" cy="310" r="6" fill="#fff"/></g></g>
+          <g id="v3n4" data-node><circle cx="410" cy="230" r="34" fill="url(#deltaGrad)"/>
+            <path d="M396 230 l9 9 18 -19" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g>
+          <circle id="v3dot1" r="7" fill="#1FC9C2" opacity="0"/>
+          <circle id="v3dot2" r="7" fill="#00294F" opacity="0"/>
+        </svg>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- S14 finale -->
+  <section class="scene" id="s14">
+    <div class="h3" style="line-height:1.22">
+      <div class="line" id="s14a">The AI era has <span class="grad">already started.</span></div>
+      <div class="line" id="s14b" style="font-size:46px;color:var(--sub);font-weight:400;margin-top:18px">Not something coming — it's happening right now.</div>
+    </div>
+    <div class="h1" id="s14c" style="margin-top:60px">The future is at your <span class="grad">fingertips.</span></div>
+    <div class="h3" id="s14d" style="margin-top:50px">Ready to learn, adapt, and scale?</div>
+  </section>
+
+  <!-- S15 closing -->
+  <section class="scene" id="s15">
+    <img class="brandlogo" id="s15logo" src="assets/delta-logo-white.png" alt="Delta AI Academy" style="width:720px;margin-bottom:30px" />
+    <div class="h3" id="s15a" style="margin-top:14px">Welcome aboard.</div>
+    <div class="sub" id="s15b">Thank you.</div>
+  </section>
+
+  <div id="bar"></div>
+  <div id="hint">space to pause · ← → to navigate</div>
+</div>
+
+<script>
+  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  const eq=x=>1-Math.pow(1-x,5);
+  const g=id=>document.getElementById(id);
+
+  function wrapWords(el){
+    const kids=[...el.childNodes]; el.innerHTML='';
+    for(const node of kids){
+      if(node.nodeType===3){
+        const parts=node.textContent.split(/(\s+)/);
+        for(const p of parts){
+          if(p==='') continue;
+          if(/^\s+$/.test(p)){ el.appendChild(document.createTextNode(p)); }
+          else{ const s=document.createElement('span'); s.className='w'; s.textContent=p; el.appendChild(s); }
+        }
+      } else { node.classList.add('w'); el.appendChild(node); }
+    }
+  }
+  document.querySelectorAll('.rw').forEach(wrapWords);
+
+  // build phase-2 waveform bars
+  const WV=[]; {
+    const wave=g('v2wave'); const n=15;
+    for(let i=0;i<n;i++){
+      const r=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      const x=104+i*21;
+      r.setAttribute('x',x); r.setAttribute('width',11); r.setAttribute('rx',5);
+      r.setAttribute('fill', i%2? '#1FC9C2':'#46E0B0'); r.setAttribute('opacity','0');
+      wave.appendChild(r); WV.push(r);
+    }
+  }
+
+  function A(el,lt,a,dur=0.7,{y=26,blur=8,sFrom=1,x=0}={}){
+    if(typeof el==='string') el=g(el);
+    const p=clamp((lt-a)/dur,0,1), e=eq(p);
+    el.style.opacity=e;
+    el.style.transform=`translate(${(1-e)*x}px,${(1-e)*y}px) scale(${lerp(sFrom,1,e)})`;
+    el.style.filter=blur?`blur(${(1-e)*blur}px)`:'';
+    return e;
+  }
+  function W(el,lt,a,{stag=0.06,dur=0.66,y=30,blur=8}={}){
+    if(typeof el==='string') el=g(el);
+    const ws=[...el.children].filter(c=>c.classList.contains('w'));
+    ws.forEach((wd,i)=>{
+      const p=clamp((lt-(a+i*stag))/dur,0,1), e=eq(p);
+      wd.style.opacity=e;
+      wd.style.transform=`translateY(${(1-e)*y}px) scale(${lerp(0.96,1,e)})`;
+      wd.style.filter=blur?`blur(${(1-e)*blur}px)`:'';
+    });
+  }
+  const dash=(id,p)=>{ g(id).style.strokeDashoffset=100*(1-eq(clamp(p,0,1))); };
+
+  // ===== SVG scene animators =====
+  function animOrbit(lt){
+    const pulse=1+0.07*Math.sin(lt*3.2);
+    g('v6core').setAttribute('r', 20*pulse);
+    const rings=[['v6e1',0,1.2,'#6E56F0'],['v6e2',2.094,1.2,'#1FA2FF'],['v6e3',4.188,1.2,'#11C5D4']];
+    rings.forEach((rr,i)=>{
+      const ang=lt*1.3+rr[1];
+      const rot=(i*60)*Math.PI/180;
+      let ex=120*Math.cos(ang), ey=42*Math.sin(ang);
+      const x=150+ex*Math.cos(rot)-ey*Math.sin(rot);
+      const yv=100+ex*Math.sin(rot)+ey*Math.cos(rot);
+      g(rr[0]).setAttribute('cx',x); g(rr[0]).setAttribute('cy',yv);
+    });
+  }
+
+  function animPhase1(lt){
+    dash('v1win', (lt-0.0)/1.2);
+    const dots=[...g('v1bar').querySelectorAll('[data-c]')];
+    dots.forEach((d,i)=>{ d.style.opacity=clamp((lt-(0.9+i*0.12))/0.4,0,1); });
+    const items=['v1h','v1l1','v1l2','v1img','v1t1','v1t2'];
+    items.forEach((id,i)=>{
+      const p=clamp((lt-(1.2+i*0.16))/0.5,0,1), e=eq(p);
+      const el=g(id); el.style.opacity=e;
+      el.style.transform=`translateY(${(1-e)*12}px) scale(${lerp(0.96,1,e)})`;
+      el.style.transformBox='fill-box'; el.style.transformOrigin='left center';
+    });
+    // button
+    const bp=clamp((lt-2.5)/0.4,0,1);
+    const btn=g('v1btn'); btn.style.opacity=eq(bp);
+    btn.style.transformBox='fill-box'; btn.style.transformOrigin='center';
+    const click=clamp((lt-3.5)/0.18,0,1), rel=clamp((lt-3.68)/0.25,0,1);
+    const press = click - rel; // 0..1..0
+    btn.style.transform=`scale(${1-0.06*press})`;
+    // cursor
+    const cur=g('v1cur');
+    const cp=clamp((lt-2.7)/0.9,0,1);
+    cur.style.opacity=clamp((lt-2.7)/0.3,0,1)*clamp((4.6-lt)/0.4,0,1);
+    const cx=lerp(470,338,eq(cp)), cy=lerp(420,300,eq(cp));
+    cur.setAttribute('transform',`translate(${cx} ${cy})`);
+    // gentle float once assembled
+    const fl=clamp((lt-3.0)/1,0,1);
+    g('v1float').style.transform=`translateY(${Math.sin(lt*1.3)*4*fl}px)`;
+    g('v1float').style.transformBox='fill-box';
+  }
+
+  function animPhase2(lt){
+    dash('v2card',(lt-0.0)/1.0);
+    const pp=clamp((lt-1.0)/0.5,0,1);
+    g('v2pbg').style.opacity=eq(pp); g('v2play').style.opacity=eq(pp);
+    const pulse=1+0.06*Math.sin(lt*3);
+    g('v2pbg').setAttribute('r',46*pulse);
+    g('v2pbg').style.transformBox='fill-box'; g('v2pbg').style.transformOrigin='center';
+    // progress loop
+    const prog=((lt-1.4)%3)/3; const pw=clamp(prog,0,1);
+    if(lt>1.4){ g('v2prog').setAttribute('width',324*pw); g('v2knob').setAttribute('cx',98+324*pw); g('v2knob').style.opacity=1; }
+    // waveform (kept inside the card)
+    WV.forEach((r,i)=>{
+      const op=clamp((lt-(1.6+i*0.04))/0.4,0,1); r.style.opacity=op*0.95;
+      const h=14+24*(0.5+0.5*Math.sin(lt*4 + i*0.6));
+      r.setAttribute('height',h); r.setAttribute('y',248-h/2);
+    });
+  }
+
+  function animPhase3(lt){
+    // nodes pop
+    ['v3n1','v3n2','v3n3','v3n4'].forEach((id,i)=>{
+      const p=clamp((lt-(0.2+i*0.18))/0.5,0,1), e=eq(p);
+      const el=g(id); el.style.opacity=e;
+      el.style.transformBox='fill-box'; el.style.transformOrigin='center';
+      el.style.transform=`scale(${lerp(0.4,1,e)})`;
+    });
+    // lines draw
+    dash('v3p1',(lt-0.6)/0.8); dash('v3p2',(lt-0.7)/0.8);
+    dash('v3p3',(lt-1.1)/0.8); dash('v3p4',(lt-1.2)/0.8);
+    // flowing dashes once drawn
+    const flow=-(lt*26);
+    ['v3p1','v3p2','v3p3','v3p4'].forEach(id=>{ if(lt>1.6) g(id).style.strokeDashoffset=flow; });
+    // gears
+    g('v3g1').style.transform=`rotate(${lt*55}deg)`;
+    g('v3g2').style.transform=`rotate(${-lt*50}deg)`;
+    // travelling data dots along n1->n2->n4 (top) and n1->n3->n4 (bottom)
+    function along(p, mid){
+      // p 0..1: seg1 n1(120,230)->mid, seg2 mid->n4(410,230)
+      if(p<0.5){ const u=p/0.5; return [lerp(120,mid[0],u), lerp(230,mid[1],u)]; }
+      const u=(p-0.5)/0.5; return [lerp(mid[0],410,u), lerp(mid[1],230,u)];
+    }
+    if(lt>1.8){
+      const t1=((lt-1.8)%2.0)/2.0; const a=along(t1,[280,150]);
+      g('v3dot1').setAttribute('cx',a[0]); g('v3dot1').setAttribute('cy',a[1]); g('v3dot1').style.opacity=1;
+      const t2=(((lt-1.8)+1.0)%2.0)/2.0; const b=along(t2,[280,310]);
+      g('v3dot2').setAttribute('cx',b[0]); g('v3dot2').setAttribute('cy',b[1]); g('v3dot2').style.opacity=1;
+    }
+  }
+
+  // ===== timeline =====
+  const SC=[
+    ['s1',6.0,(t)=>{ A('s1k',t,0.15,0.6,{y:14,blur:4}); W('s1a',t,0.55); A('s1b',t,1.7,0.8); }],
+    ['s2',7.5,(t)=>{ W('s2a',t,0.3);
+        const c=[...g('s2chips').children]; c.forEach((ch,i)=>A(ch,t,1.4+i*0.18,0.7,{y:34,blur:6,sFrom:0.9})); }],
+    ['s3',7.0,(t)=>{ W('s3a',t,0.35); W('s3b',t,1.15); }],
+    ['s4',6.5,(t)=>{ A('s4a',t,0.3,0.7,{y:40,blur:10,sFrom:0.85}); A('s4b',t,1.2,0.7,{y:40,blur:10,sFrom:0.85});
+        A('s4c',t,2.1,0.7,{y:40,blur:10,sFrom:0.85}); A('s4d',t,3.3,0.8); }],
+    ['s5',7.0,(t)=>{ const fade=clamp((2.9-t)/0.5,0,1);
+        g('s5a').style.opacity=eq(clamp((t-0.3)/0.8,0,1))*fade; g('s5a').style.transform=`translateY(${(1-fade)*-18}px)`;
+        A('s5b',t,3.1,0.85,{y:40,blur:10,sFrom:0.9}); }],
+    ['s6',8.0,(t)=>{ A('sv6',t,0.2,0.8,{y:20,blur:6}); animOrbit(t);
+        A('s6k',t,0.5,0.7,{y:16,blur:4}); W('s6a',t,1.1,{stag:0.07,dur:0.8,y:40,blur:12}); A('s6b',t,2.8,0.9); }],
+    ['s7',8.5,(t)=>{ A('s7k',t,0.2,0.6,{y:14,blur:4});
+        A('s7a',t,1.0,0.7,{y:28}); A('s7b',t,2.0,0.7,{y:28}); A('s7c',t,3.0,0.7,{y:28}); }],
+    ['s8',9.5,(t)=>{
+        const e=eq(clamp((t-0.3)/1.15,0,1)); const el=g('s8logo');
+        el.style.opacity=clamp((t-0.3)/0.25,0,1);
+        el.style.clipPath=`inset(0 ${(1-e)*100}% 0 0)`;          // wipe reveal left → right
+        el.style.transform=`translateY(${(1-e)*8}px) scale(${lerp(0.985,1,e)})`;
+        A('s8tag',t,1.7,0.9); }],
+    ['s9',12.5,(t)=>{ W('s9a',t,0.3,{dur:0.7,y:26}); W('s9b',t,1.0,{dur:0.7,y:26});
+        const gs=[...g('s9goals').children]; gs.forEach((row,i)=>A(row,t,2.6+i*0.55,0.7,{y:26,blur:4,x:-30})); }],
+    ['s10',5.0,(t)=>{ A('s10k',t,0.3,0.7,{y:16,blur:4}); W('s10a',t,1.0,{stag:0.06,dur:0.8,y:40,blur:12}); }],
+    ['s11',14.0,(t)=>{
+        A('p1num',t,0.2,0.9,{y:30,blur:8,sFrom:0.8}); A('p1lab',t,0.6,0.6,{y:16,blur:3});
+        A('p1title',t,0.9,0.8,{y:30,blur:8}); A('p1desc',t,1.7,0.9,{y:24});
+        const pts=[...g('p1points').children]; pts.forEach((p,i)=>A(p,t,2.6+i*0.5,0.7,{y:22,blur:4,x:-24}));
+        animPhase1(t-1.0); }],
+    ['s11b',7.0,(t)=>{
+        A('p1bk',t,0.3,0.7,{y:16,blur:4}); W('p1bh',t,0.8,{dur:0.7,y:30});
+        A('p1ca',t,1.9,0.8,{y:30,blur:8,sFrom:0.94}); A('p1arr',t,2.7,0.6,{y:0,blur:0,sFrom:0.6});
+        A('p1cb',t,3.1,0.8,{y:30,blur:8,sFrom:0.94}); A('p1bs',t,4.3,0.9); }],
+    ['s12',11.0,(t)=>{
+        A('p2num',t,0.2,0.9,{y:30,blur:8,sFrom:0.8}); A('p2lab',t,0.6,0.6,{y:16,blur:3});
+        A('p2title',t,0.9,0.8,{y:30,blur:8}); A('p2desc',t,1.7,0.9,{y:24});
+        const pts=[...g('p2points').children]; pts.forEach((p,i)=>A(p,t,2.6+i*0.5,0.7,{y:22,blur:4,x:-24}));
+        animPhase2(t-1.0); }],
+    ['s13',11.0,(t)=>{
+        A('p3num',t,0.2,0.9,{y:30,blur:8,sFrom:0.8}); A('p3lab',t,0.6,0.6,{y:16,blur:3});
+        A('p3title',t,0.9,0.8,{y:30,blur:8}); A('p3desc',t,1.7,0.9,{y:24});
+        const pts=[...g('p3points').children]; pts.forEach((p,i)=>A(p,t,2.6+i*0.5,0.7,{y:22,blur:4,x:-24}));
+        animPhase3(t-1.0); }],
+    ['s14',12.0,(t)=>{ A('s14a',t,0.3,0.8,{y:28}); A('s14b',t,1.5,0.8,{y:18});
+        A('s14c',t,3.6,0.9,{y:40,blur:10,sFrom:0.92}); A('s14d',t,6.2,0.9,{y:30,blur:8}); }],
+    ['s15',8.0,(t)=>{ const e=eq(clamp((t-0.25)/1.15,0,1)); const el=g('s15logo');
+        el.style.opacity=clamp((t-0.25)/0.25,0,1);
+        el.style.clipPath=`inset(0 ${(1-e)*100}% 0 0)`;
+        el.style.transform=`scale(${lerp(0.985,1,e)})`;
+        A('s15a',t,1.4,0.8,{y:24}); A('s15b',t,2.5,0.9); }],
+  ];
+  let acc=0; const SCENES=SC.map(([id,dur,fn])=>{ const o={id,t0:acc,t1:acc+dur,fn,el:g(id)}; acc+=dur; return o; });
+  const TOTAL=acc; window.TOTAL_S=TOTAL; window.OPAQUE=true;
+
+  const FIN=0.55, FOUT=0.5;
+  function seek(t){
+    t=clamp(t,0,TOTAL);
+    g('bar').style.width=(t/TOTAL*1920)+'px';
+    g('blobA').style.transform=`translate(${Math.sin(t*0.18)*70}px,${Math.cos(t*0.13)*60}px)`;
+    g('blobB').style.transform=`translate(${Math.cos(t*0.15)*80}px,${Math.sin(t*0.11)*70}px)`;
+    g('blobC').style.transform=`translate(${Math.sin(t*0.1+1)*60}px,${Math.cos(t*0.17)*50}px)`;
+    for(const s of SCENES){
+      const live = t>=s.t0-0.001 && t<s.t1+0.001;
+      if(!live){ if(s.el.classList.contains('live')) s.el.classList.remove('live'); continue; }
+      if(!s.el.classList.contains('live')) s.el.classList.add('live');
+      const fi=clamp((t-s.t0)/FIN,0,1), fo=clamp((s.t1-t)/FOUT,0,1);
+      s.el.style.opacity=Math.min(eq(fi),eq(fo));
+      s.el.style.transform=`scale(${lerp(0.992,1,eq(fi))*(1+(1-fo)*0.016)})`;
+      s.fn(t-s.t0);
+    }
+  }
+  window.seek=seek; seek(0);
+
+  // responsive: scale the fixed 1920x1080 canvas to fit any screen (laptop, etc.)
+  function fit(){
+    const s=Math.min(window.innerWidth/1920, window.innerHeight/1080);
+    g('app').style.transform='scale('+s+')';
+  }
+  fit(); window.addEventListener('resize',fit);
+
+  document.fonts.ready.then(()=>{ window.FONTS_READY=true; });
+
+  if(!window.RENDER){
+    let playing=true, clock=0, last=null; const hint=g('hint');
+    function frame(ts){ if(last==null) last=ts; let dt=(ts-last)/1000; last=ts; if(dt>0.25) dt=1/60;
+      if(playing){ clock+=dt; if(clock>=TOTAL){ clock=TOTAL; playing=false; } seek(clock); }
+      hint.style.opacity = clock<4 && playing ? 1 : 0; requestAnimationFrame(frame); }
+    requestAnimationFrame(frame);
+    function sceneAt(t){ for(let i=SCENES.length-1;i>=0;i--) if(t>=SCENES[i].t0) return i; return 0; }
+    addEventListener('keydown',e=>{
+      if(e.code==='Space'){ e.preventDefault(); if(clock>=TOTAL){clock=0;} playing=!playing; last=null; }
+      else if(e.code==='ArrowRight'){ const i=sceneAt(clock); clock=SCENES[Math.min(i+1,SCENES.length-1)].t0; seek(clock); }
+      else if(e.code==='ArrowLeft'){ const i=sceneAt(clock); clock=SCENES[Math.max(i-1,0)].t0; seek(clock); }
+      else if(e.key.toLowerCase()==='r'){ clock=0; playing=true; last=null; }
+    });
+    addEventListener('click',()=>{ if(clock>=TOTAL){clock=0;playing=true;last=null;return;} playing=!playing; last=null; });
+  }
+</script>
+</body>
+</html>
