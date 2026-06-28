@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Delta AI Academy — Introduction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#06121F; --bg2:#0C2236; --ink:#E9F1F9; --sub:#9DB0C2; --line:rgba(255,255,255,.10);
+    --grad:linear-gradient(135deg,#21CFC6 0%,#46E0B0 60%,#62E6AC 100%);
+    --accent:#2FD0C6;
+    --surface:#10202F; --surface2:#0B1825; --skel:#23333F; --shadow:rgba(0,0,0,.45);
+    --chiptext:#CBD8E4; --muted:#6E7E8C; --arrow:#46586A;
+    --fd:"DM Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --fb:"DM Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ width:100%; height:100%; overflow:hidden; }
+  body{
+    background:radial-gradient(125% 95% at 12% -6%, var(--bg2) 0%, var(--bg) 55%); color:var(--ink);
+    font-family:var(--fb),-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased; letter-spacing:-0.01em;
+    display:flex; align-items:center; justify-content:center;
+  }
+  /* fixed internal canvas, scaled to fit any screen */
+  #app{ position:relative; width:1920px; height:1080px; overflow:hidden;
+    flex:0 0 auto; transform-origin:center center; }
+
+  .blob{ position:absolute; width:1100px; height:1100px; border-radius:50%;
+    filter:blur(120px); opacity:.5; pointer-events:none; will-change:transform; }
+  #blobA{ background:radial-gradient(circle,#7EE6DA 0%,rgba(126,230,218,0) 65%); top:-380px; left:-220px; }
+  #blobB{ background:radial-gradient(circle,#9BEFC6 0%,rgba(155,239,198,0) 65%); bottom:-460px; right:-260px; }
+  #blobC{ background:radial-gradient(circle,#Bfe7ff 0%,rgba(170,225,255,0) 65%); top:240px; right:-380px; opacity:.32; }
+
+  .scene{ position:absolute; inset:0; display:none; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center;
+    padding:0 180px; will-change:opacity,transform; }
+  .scene.live{ display:flex; }
+  .abscenter{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:0 180px; text-align:center; }
+
+  .kicker{ font-size:30px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--sub); margin-bottom:34px; }
+  .kicker.gradk{ color:var(--accent); }
+
+  .h1{ font-family:var(--fd); font-size:116px; font-weight:700; line-height:1.04; letter-spacing:-0.03em; }
+  .h2{ font-family:var(--fd); font-size:88px; font-weight:700; line-height:1.07; letter-spacing:-0.025em; }
+  .h3{ font-family:var(--fd); font-size:64px; font-weight:600; line-height:1.13; letter-spacing:-0.02em; }
+  .sub{ font-family:var(--fb); font-size:40px; font-weight:400; color:var(--sub); line-height:1.42; margin-top:34px; max-width:1300px; letter-spacing:0; }
+
+  .grad{ color:var(--accent); }
+  .muted{ color:var(--muted); }
+
+  .w{ display:inline-block; will-change:transform,opacity,filter; }
+  .line{ display:block; }
+
+  .chips{ display:flex; flex-wrap:wrap; gap:22px; justify-content:center; margin-top:54px; max-width:1400px; }
+  .chip{ font-size:38px; font-weight:600; padding:18px 40px; border-radius:100px;
+    background:var(--surface); border:1px solid var(--line); color:var(--chiptext);
+    box-shadow:0 12px 40px var(--shadow); will-change:transform,opacity; }
+  .chip .dot{ display:inline-block; width:14px; height:14px; border-radius:50%;
+    background:var(--grad); margin-right:16px; transform:translateY(1px); }
+
+  .goals{ margin-top:48px; display:grid; grid-auto-flow:column; grid-template-rows:repeat(3,auto);
+    column-gap:84px; row-gap:30px; justify-content:center; align-items:center; }
+  .goal{ display:flex; align-items:center; gap:24px; font-size:40px; font-weight:600; will-change:transform,opacity; }
+  .goal svg{ width:44px; height:44px; flex:0 0 44px; }
+
+  /* two-column phase */
+  .pcol{ display:flex; width:100%; max-width:1680px; gap:80px; align-items:center; text-align:left; }
+  .pleft{ flex:1; }
+  .pright{ flex:0 0 600px; display:flex; justify-content:center; }
+  .illus{ width:600px; height:480px; border-radius:34px;
+    background:linear-gradient(160deg,var(--surface),var(--surface2));
+    border:1px solid var(--line); box-shadow:0 30px 90px var(--shadow);
+    display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .illus svg{ width:92%; height:92%; }
+  .plabel2{ font-family:var(--fb); font-size:27px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-top:4px; will-change:transform,opacity; }
+  .ptitle2{ font-family:var(--fd); font-size:58px; font-weight:700; letter-spacing:-0.025em; line-height:1.06; margin-top:14px; will-change:transform,opacity; }
+  .pdesc2{ font-family:var(--fb); font-size:33px; font-weight:400; color:var(--sub); line-height:1.42; margin-top:22px; max-width:760px; will-change:transform,opacity; }
+  .points{ margin-top:30px; display:flex; flex-direction:column; gap:18px; }
+  .point{ display:flex; align-items:center; gap:20px; font-size:33px; font-weight:600; will-change:transform,opacity; }
+  .point svg{ width:36px; height:36px; flex:0 0 36px; }
+
+  /* cost */
+  .cost{ display:flex; gap:34px; margin-top:54px; align-items:stretch; justify-content:center; }
+  .costcard{ background:var(--surface); border:1px solid var(--line); border-radius:26px; padding:36px 50px;
+    box-shadow:0 18px 60px var(--shadow); min-width:540px; will-change:transform,opacity; }
+  .costcard .ct{ font-size:30px; font-weight:600; color:var(--sub); }
+  .costcard .cv{ font-family:var(--fd); font-size:74px; font-weight:700; letter-spacing:-0.025em; margin-top:10px; }
+  .costcard.b{ border:0; background:var(--grad); color:#fff; }
+  .costcard.b .ct{ color:rgba(255,255,255,.85); }
+  .costarrow{ display:flex; align-items:center; font-size:70px; color:var(--arrow); font-weight:300; will-change:opacity,transform; }
+
+  /* svg helpers */
+  [data-spin]{ transform-box:fill-box; transform-origin:center; }
+
+  .brandlogo{ width:620px; height:auto; will-change:transform,opacity,clip-path; }
+
+  #bar{ position:absolute; left:0; bottom:0; height:5px; width:0; background:var(--grad); }
+  #hint{ position:absolute; right:48px; bottom:40px; font-size:24px; color:var(--muted); font-weight:500; opacity:0; transition:opacity .6s; }
+
+  /* dark-theme recolors for inline SVG illustrations (CSS overrides SVG fill= attributes) */
+  #v1win{ fill:var(--surface); }
+  #v1bar line{ stroke:var(--line); }
+  #v1h{ fill:var(--ink); }
+  #v1l1,#v1l2,#v1t1,#v1t2{ fill:var(--skel); }
+  #v1cur{ fill:var(--ink); stroke:var(--bg); }
+  /* files-overload cards */
+  #svf .cardbody{ fill:var(--surface); }
+  #svf .cardline{ fill:var(--skel); }
+  #svf .cardfold{ fill:#33343c; }
+  #svf #vfghost rect{ fill:var(--surface); }
+  /* organise / laptop+phone */
+  #svo #voscreen,#svo #vobase{ fill:var(--surface); }
+  #svo .vodot rect{ fill:var(--skel); }
+  #svo .phonescreen{ fill:var(--surface2); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="blob" id="blobA"></div>
+  <div class="blob" id="blobB"></div>
+  <div class="blob" id="blobC"></div>
+
+  <svg width="0" height="0" style="position:absolute"><defs>
+    <linearGradient id="deltaGrad" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#1FC9C2"/><stop offset=".55" stop-color="#46E0B0"/><stop offset="1" stop-color="#64E6AA"/>
+    </linearGradient>
+  </defs></svg>
+
+  <!-- S1 greeting -->
+  <section class="scene" id="s1">
+    <div class="kicker" id="s1k">Good evening, everyone</div>
+    <div class="h1"><div class="line rw" id="s1a">It's my pleasure</div></div>
+    <div class="sub" id="s1b">to introduce you to Delta AI Academy.</div>
+  </section>
+
+  <!-- S8 brand drop -->
+  <section class="scene" id="s8">
+    <img class="brandlogo" id="s8logo" src="assets/delta-logo-white.png" alt="Delta AI Academy" />
+    <div class="sub" id="s8tag" style="margin-top:58px">Work smarter, build real things — without a single line of code.</div>
+  </section>
+
+  <!-- S2 who it's for -->
+  <section class="scene" id="s2">
+    <div class="kicker" id="s2k">What is Delta AI Academy?</div>
+    <div class="h2"><div class="line rw" id="s2a">Built for people ready to <span class="grad">level up.</span></div></div>
+    <div class="chips" id="s2chips">
+      <div class="chip"><span class="dot"></span>Business owners</div>
+      <div class="chip"><span class="dot"></span>Startup founders</div>
+      <div class="chip"><span class="dot"></span>Professionals</div>
+      <div class="chip"><span class="dot"></span>Students</div>
+    </div>
+  </section>
+
+  <!-- S6 power of AI + neural orbit -->
+  <section class="scene" id="s6">
+    <svg id="sv6" viewBox="0 0 300 200" style="width:300px;height:200px;margin-bottom:26px;overflow:visible">
+      <g id="v6rings" fill="none" stroke="url(#deltaGrad)" stroke-width="2" opacity=".5">
+        <ellipse id="v6r1" cx="150" cy="100" rx="120" ry="42"/>
+        <ellipse id="v6r2" cx="150" cy="100" rx="120" ry="42" transform="rotate(60 150 100)"/>
+        <ellipse id="v6r3" cx="150" cy="100" rx="120" ry="42" transform="rotate(120 150 100)"/>
+      </g>
+      <circle id="v6core" cx="150" cy="100" r="20" fill="url(#deltaGrad)"/>
+      <circle id="v6e1" r="9" fill="#00294F"/>
+      <circle id="v6e2" r="9" fill="#21CFC6"/>
+      <circle id="v6e3" r="9" fill="#5CE6AC"/>
+    </svg>
+    <div class="kicker gradk" id="s6k">Our mission</div>
+    <div class="h1"><div class="line rw" id="s6a">Work <span class="grad">smarter.</span></div></div>
+    <div class="sub" id="s6b">Save time, automate daily tasks, and build real applications — all with the power of AI.</div>
+  </section>
+
+  <!-- Sfiles — the daily file overload (NEW svg) -->
+  <section class="scene" id="sfiles">
+    <div class="kicker" id="sfk">For business owners &amp; professionals</div>
+    <svg id="svf" viewBox="0 0 920 300" style="width:1000px;height:316px;overflow:visible;margin-bottom:14px">
+      <g id="vfghost" opacity="0">
+        <rect x="40" y="78" width="120" height="150" rx="13" transform="rotate(-13 100 153)"/>
+        <rect x="250" y="60" width="120" height="150" rx="13" transform="rotate(9 310 135)"/>
+        <rect x="470" y="84" width="120" height="150" rx="13" transform="rotate(-7 530 159)"/>
+        <rect x="690" y="58" width="120" height="150" rx="13" transform="rotate(11 750 133)"/>
+        <rect x="610" y="96" width="120" height="150" rx="13" transform="rotate(-5 670 171)"/>
+      </g>
+      <g class="fcard" id="vfc0">
+        <rect class="cardbody" x="-66" y="-84" width="132" height="168" rx="14" fill="#fff" stroke="rgba(255,255,255,.14)" stroke-width="2"/>
+        <path class="cardfold" d="M42 -84 L66 -60 L42 -60 Z" fill="#dfe0e8"/>
+        <rect x="-46" y="-44" width="92" height="30" rx="7" fill="#21B573"/>
+        <text x="0" y="-23" text-anchor="middle" font-family="DM Sans" font-size="17" font-weight="700" fill="#fff">XLS</text>
+        <rect class="cardline" x="-46" y="6" width="92" height="9" rx="4"/><rect class="cardline" x="-46" y="26" width="68" height="9" rx="4"/><rect class="cardline" x="-46" y="46" width="82" height="9" rx="4"/>
+      </g>
+      <g class="fcard" id="vfc1">
+        <rect class="cardbody" x="-66" y="-84" width="132" height="168" rx="14" fill="#fff" stroke="rgba(255,255,255,.14)" stroke-width="2"/>
+        <path class="cardfold" d="M42 -84 L66 -60 L42 -60 Z" fill="#dfe0e8"/>
+        <rect x="-46" y="-44" width="92" height="30" rx="7" fill="#FF6B6B"/>
+        <text x="0" y="-23" text-anchor="middle" font-family="DM Sans" font-size="17" font-weight="700" fill="#fff">PDF</text>
+        <rect class="cardline" x="-46" y="6" width="92" height="9" rx="4"/><rect class="cardline" x="-46" y="26" width="60" height="9" rx="4"/><rect class="cardline" x="-46" y="46" width="78" height="9" rx="4"/>
+      </g>
+      <g class="fcard" id="vfc2">
+        <rect class="cardbody" x="-66" y="-84" width="132" height="168" rx="14" fill="#fff" stroke="rgba(255,255,255,.14)" stroke-width="2"/>
+        <path class="cardfold" d="M42 -84 L66 -60 L42 -60 Z" fill="#dfe0e8"/>
+        <rect x="-46" y="-44" width="92" height="30" rx="7" fill="#4D8CFF"/>
+        <text x="0" y="-23" text-anchor="middle" font-family="DM Sans" font-size="17" font-weight="700" fill="#fff">DOC</text>
+        <rect class="cardline" x="-46" y="6" width="92" height="9" rx="4"/><rect class="cardline" x="-46" y="26" width="72" height="9" rx="4"/><rect class="cardline" x="-46" y="46" width="64" height="9" rx="4"/>
+      </g>
+      <g class="fcard" id="vfc3">
+        <rect class="cardbody" x="-66" y="-84" width="132" height="168" rx="14" fill="#fff" stroke="rgba(255,255,255,.14)" stroke-width="2"/>
+        <path class="cardfold" d="M42 -84 L66 -60 L42 -60 Z" fill="#dfe0e8"/>
+        <rect x="-46" y="-44" width="92" height="30" rx="7" fill="#FFB020"/>
+        <text x="0" y="-23" text-anchor="middle" font-family="DM Sans" font-size="16" font-weight="700" fill="#fff">MAIL</text>
+        <rect x="-46" y="4" width="92" height="56" rx="8" fill="none" stroke="var(--skel)" stroke-width="3"/>
+        <path d="M-46 8 L0 40 L46 8" fill="none" stroke="var(--skel)" stroke-width="3"/>
+      </g>
+      <g class="fcard" id="vfc4">
+        <rect class="cardbody" x="-66" y="-84" width="132" height="168" rx="14" fill="#fff" stroke="rgba(255,255,255,.14)" stroke-width="2"/>
+        <path class="cardfold" d="M42 -84 L66 -60 L42 -60 Z" fill="#dfe0e8"/>
+        <rect x="-46" y="-44" width="92" height="30" rx="7" fill="#2FD0C6"/>
+        <text x="0" y="-23" text-anchor="middle" font-family="DM Sans" font-size="17" font-weight="700" fill="#fff">CSV</text>
+        <rect class="cardline" x="-46" y="6" width="92" height="9" rx="4"/><rect class="cardline" x="-46" y="26" width="66" height="9" rx="4"/><rect class="cardline" x="-46" y="46" width="80" height="9" rx="4"/>
+      </g>
+    </svg>
+    <div class="h3" id="sfa" style="max-width:1560px">Hundreds of <span class="grad">Excel sheets, PDFs, reports &amp; emails</span> — every single day.</div>
+    <div class="sub" id="sfb">Organising and managing all of it eats hours of your time.</div>
+  </section>
+
+  <!-- Sorg — one place + automate + control from phone (NEW svg) -->
+  <section class="scene" id="sorg">
+    <div class="pcol">
+      <div class="pleft">
+        <div class="plabel2" id="solab">At Delta AI Academy</div>
+        <div class="ptitle2" id="sotitle">All your files —<br/>in one place.</div>
+        <div class="pdesc2" id="sodesc">Build AI-powered apps that organise, search and manage everything — and even run your laptop from your phone.</div>
+        <div class="points" id="sopoints">
+          <div class="point"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Organise, search &amp; manage every file</div>
+          <div class="point"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Automate repetitive tasks &amp; workflows</div>
+          <div class="point"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Control your laptop from your phone — with AI</div>
+        </div>
+      </div>
+      <div class="pright"><div class="illus">
+        <svg id="svo" viewBox="0 0 520 460">
+          <!-- beam phone -> laptop (drawn behind devices) -->
+          <path id="vobeam" d="M120 330 C 220 330, 175 250, 250 250" fill="none" stroke="url(#deltaGrad)" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 11" pathLength="100" stroke-dashoffset="100" opacity="0"/>
+          <g id="volap">
+            <rect id="voscreen" x="120" y="58" width="300" height="192" rx="16" fill="#fff" stroke="url(#deltaGrad)" stroke-width="3" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
+            <path id="vobase" d="M104 250 H436 L470 292 H70 Z" fill="#fff" stroke="url(#deltaGrad)" stroke-width="3" stroke-linejoin="round" opacity="0"/>
+            <g id="vofolder" opacity="0"><path d="M212 150 h40 l12 14 h54 a9 9 0 0 1 9 9 v42 a9 9 0 0 1 -9 9 h-106 a9 9 0 0 1 -9 -9 v-56 a9 9 0 0 1 9 -9 z" fill="url(#deltaGrad)"/></g>
+            <g id="vodots">
+              <g class="vodot" opacity="0"><rect x="-9" y="-11" width="18" height="22" rx="3"/></g>
+              <g class="vodot" opacity="0"><rect x="-9" y="-11" width="18" height="22" rx="3"/></g>
+              <g class="vodot" opacity="0"><rect x="-9" y="-11" width="18" height="22" rx="3"/></g>
+              <g class="vodot" opacity="0"><rect x="-9" y="-11" width="18" height="22" rx="3"/></g>
+              <g class="vodot" opacity="0"><rect x="-9" y="-11" width="18" height="22" rx="3"/></g>
+              <g class="vodot" opacity="0"><rect x="-9" y="-11" width="18" height="22" rx="3"/></g>
+            </g>
+            <path id="vocheck" d="M250 180 l13 14 27 -29" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
+          </g>
+          <!-- phone -->
+          <g id="vophone" opacity="0">
+            <rect x="44" y="300" width="92" height="150" rx="18" fill="#fff" stroke="url(#deltaGrad)" stroke-width="3"/>
+            <rect class="phonescreen" x="56" y="318" width="68" height="98" rx="8"/>
+            <rect x="63" y="330" width="42" height="8" rx="4" fill="url(#deltaGrad)"/>
+            <rect x="63" y="346" width="54" height="6" rx="3" fill="#3a3a3a"/>
+            <rect x="63" y="360" width="46" height="6" rx="3" fill="#3a3a3a"/>
+            <rect x="63" y="374" width="50" height="6" rx="3" fill="#3a3a3a"/>
+            <circle cx="90" cy="432" r="7" fill="none" stroke="url(#deltaGrad)" stroke-width="3"/>
+          </g>
+          <!-- prompt bubble travelling along the beam -->
+          <g id="vobubble" opacity="0"><rect x="-30" y="-16" width="60" height="32" rx="11" fill="url(#deltaGrad)"/><text x="0" y="5" text-anchor="middle" font-family="DM Sans" font-size="15" font-weight="700" fill="#fff">AI ✦</text></g>
+        </svg>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- S11 build apps (app-builder window) -->
+  <section class="scene" id="s11">
+    <div class="pcol">
+      <div class="pleft">
+        <div class="plabel2" id="p1lab">If you have an idea</div>
+        <div class="ptitle2" id="p1title">Design, build<br/>&amp; deploy it.</div>
+        <div class="pdesc2" id="p1desc">A business idea, a startup, a real-world solution — built and shipped in a production-ready environment.</div>
+        <div class="points" id="p1points">
+          <div class="point"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>CRM, ERP &amp; e-commerce platforms</div>
+          <div class="point"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Mobile apps &amp; custom business tools</div>
+          <div class="point"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#deltaGrad)"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Production-ready — zero code written</div>
+        </div>
+      </div>
+      <div class="pright"><div class="illus">
+        <svg id="sv1" viewBox="0 0 520 460">
+          <g id="v1float">
+            <rect id="v1win" x="70" y="60" width="380" height="300" rx="20" fill="#ffffff" stroke="url(#deltaGrad)" stroke-width="3" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
+            <g id="v1bar">
+              <line x1="70" y1="104" x2="450" y2="104" stroke="#e7e7ee" stroke-width="2"/>
+              <circle cx="98" cy="82" r="6" fill="#ff5f57" data-c/><circle cx="120" cy="82" r="6" fill="#febc2e" data-c/><circle cx="142" cy="82" r="6" fill="#28c840" data-c/>
+            </g>
+            <g id="v1content">
+              <rect id="v1h" x="98" y="128" width="170" height="22" rx="6" fill="#1d1d1f"/>
+              <rect id="v1l1" x="98" y="166" width="324" height="12" rx="6" fill="#dfe0e8"/>
+              <rect id="v1l2" x="98" y="188" width="270" height="12" rx="6" fill="#e7e8ef"/>
+              <rect id="v1img" x="98" y="222" width="150" height="100" rx="12" fill="url(#deltaGrad)" opacity=".9"/>
+              <rect id="v1t1" x="270" y="226" width="152" height="12" rx="6" fill="#dfe0e8"/>
+              <rect id="v1t2" x="270" y="250" width="120" height="12" rx="6" fill="#e7e8ef"/>
+              <rect id="v1btn" x="270" y="286" width="152" height="40" rx="12" fill="url(#deltaGrad)"/>
+            </g>
+            <path id="v1cur" d="M0 0 L0 22 L6 16 L10 24 L13 22 L9 15 L17 15 Z" fill="#1d1d1f" stroke="#fff" stroke-width="1.2" opacity="0"/>
+          </g>
+        </svg>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- S11b cost -->
+  <section class="scene" id="s11b">
+    <div class="kicker gradk" id="p1bk">The traditional way</div>
+    <div class="h2"><div class="line rw" id="p1bh">A fraction of the <span class="grad">cost and time.</span></div></div>
+    <div class="cost">
+      <div class="costcard" id="p1ca"><div class="ct">Agency / dev company</div><div class="cv">AED 10,000s</div></div>
+      <div class="costarrow" id="p1arr">→</div>
+      <div class="costcard b" id="p1cb"><div class="ct">With Delta AI skills</div><div class="cv">A fraction</div></div>
+    </div>
+    <div class="sub" id="p1bs">Months of agency work — built yourself in days, high-quality and production-ready.</div>
+  </section>
+
+  <!-- Sstu for students -->
+  <section class="scene" id="sstu">
+    <div class="kicker" id="stuk">If you're a student</div>
+    <div class="h2"><div class="line rw" id="stua">Skip years of <span class="grad">programming.</span></div></div>
+    <div class="sub" id="stub">Build real web apps, mobile apps and AI agents — solving real problems, from day one.</div>
+    <div class="chips" id="stuchips">
+      <div class="chip"><span class="dot"></span>Web apps</div>
+      <div class="chip"><span class="dot"></span>Mobile apps</div>
+      <div class="chip"><span class="dot"></span>AI agents</div>
+      <div class="chip"><span class="dot"></span>Business solutions</div>
+    </div>
+  </section>
+
+  <!-- S7 think · build · automate · launch (NEW svg) -->
+  <section class="scene" id="s7">
+    <div class="kicker" id="s7k">We don't just teach AI tools</div>
+    <div class="h2"><div class="line rw" id="s7h">We teach you how to <span class="grad">—</span></div></div>
+    <svg id="svs" viewBox="0 0 1010 210" style="width:1180px;height:auto;margin-top:46px;overflow:visible">
+      <path id="vsline" d="M178 96 H832" fill="none" stroke="url(#deltaGrad)" stroke-width="4" stroke-linecap="round" stroke-dasharray="10 13" pathLength="100" stroke-dashoffset="100" opacity=".85"/>
+      <g id="vs1">
+        <circle cx="130" cy="96" r="42" fill="none" stroke="url(#deltaGrad)" stroke-width="3"/>
+        <path d="M130 74 a17 17 0 0 1 10 30 l0 6 -20 0 0 -6 a17 17 0 0 1 10 -30 z" fill="none" stroke="#46E0B0" stroke-width="3" stroke-linejoin="round"/>
+        <line x1="123" y1="114" x2="137" y2="114" stroke="#46E0B0" stroke-width="3" stroke-linecap="round"/>
+      </g>
+      <g id="vs2">
+        <circle cx="380" cy="96" r="42" fill="none" stroke="url(#deltaGrad)" stroke-width="3"/>
+        <rect x="361" y="77" width="25" height="25" rx="5" fill="none" stroke="#46E0B0" stroke-width="3"/>
+        <rect x="379" y="95" width="25" height="25" rx="5" fill="url(#deltaGrad)"/>
+      </g>
+      <g id="vs3">
+        <circle cx="630" cy="96" r="42" fill="none" stroke="url(#deltaGrad)" stroke-width="3"/>
+        <g id="vsgear" data-spin>
+          <path d="M630 78 l4 0 1 6 5 2 5-3 3 3-3 5 2 5 6 1 0 4-6 1-2 5 3 5-3 3-5-3-5 2-1 6-4 0-1-6-5-2-5 3-3-3 3-5-2-5-6-1 0-4 6-1 2-5-3-5 3-3 5 3 5-2z" fill="#46E0B0"/>
+          <circle cx="630" cy="96" r="7" fill="var(--surface)"/>
+        </g>
+      </g>
+      <g id="vs4">
+        <circle cx="880" cy="96" r="42" fill="none" stroke="url(#deltaGrad)" stroke-width="3"/>
+        <g id="vsrocket">
+          <path d="M880 70 C 892 82, 892 104, 880 116 C 868 104, 868 82, 880 70 Z" fill="url(#deltaGrad)"/>
+          <circle cx="880" cy="92" r="6" fill="var(--surface)"/>
+          <path d="M868 104 l-7 11 9 -4 z" fill="#1FC9C2"/><path d="M892 104 l7 11 -9 -4 z" fill="#1FC9C2"/>
+        </g>
+        <path id="vsflame" d="M874 116 L880 135 L886 116 Z" fill="#FFB020" opacity="0"/>
+      </g>
+      <text id="vs1l" x="130" y="182" text-anchor="middle" font-family="DM Sans" font-size="27" font-weight="700" fill="#CBD8E4" opacity="0">Think</text>
+      <text id="vs2l" x="380" y="182" text-anchor="middle" font-family="DM Sans" font-size="27" font-weight="700" fill="#CBD8E4" opacity="0">Build</text>
+      <text id="vs3l" x="630" y="182" text-anchor="middle" font-family="DM Sans" font-size="27" font-weight="700" fill="#CBD8E4" opacity="0">Automate</text>
+      <text id="vs4l" x="880" y="182" text-anchor="middle" font-family="DM Sans" font-size="27" font-weight="700" fill="#CBD8E4" opacity="0">Launch</text>
+    </svg>
+  </section>
+
+  <!-- S14 finale -->
+  <section class="scene" id="s14">
+    <div class="h2" id="s14a" style="max-width:1500px">The future belongs to those who</div>
+    <div class="h1" id="s14b" style="margin-top:18px">don't just ask — they <span class="grad">build.</span></div>
+    <div class="sub" id="s14d">Start a business. Grow your career. Automate your work. Begin here.</div>
+  </section>
+
+  <!-- S15 closing -->
+  <section class="scene" id="s15">
+    <img class="brandlogo" id="s15logo" src="assets/delta-logo-white.png" alt="Delta AI Academy" style="width:720px;margin-bottom:30px" />
+    <div class="h3" id="s15a" style="margin-top:14px">Welcome to Delta AI Academy.</div>
+    <div class="sub" id="s15b">Thank you.</div>
+  </section>
+
+  <div id="bar"></div>
+  <div id="hint">click or press space to play · ← → to navigate</div>
+</div>
+
+<script>
+  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  const eq=x=>1-Math.pow(1-x,5);
+  const g=id=>document.getElementById(id);
+
+  function wrapWords(el){
+    const kids=[...el.childNodes]; el.innerHTML='';
+    for(const node of kids){
+      if(node.nodeType===3){
+        const parts=node.textContent.split(/(\s+)/);
+        for(const p of parts){
+          if(p==='') continue;
+          if(/^\s+$/.test(p)){ el.appendChild(document.createTextNode(p)); }
+          else{ const s=document.createElement('span'); s.className='w'; s.textContent=p; el.appendChild(s); }
+        }
+      } else { node.classList.add('w'); el.appendChild(node); }
+    }
+  }
+  document.querySelectorAll('.rw').forEach(wrapWords);
+
+  function A(el,lt,a,dur=0.7,{y=26,blur=8,sFrom=1,x=0}={}){
+    if(typeof el==='string') el=g(el);
+    const p=clamp((lt-a)/dur,0,1), e=eq(p);
+    el.style.opacity=e;
+    el.style.transform=`translate(${(1-e)*x}px,${(1-e)*y}px) scale(${lerp(sFrom,1,e)})`;
+    el.style.filter=blur?`blur(${(1-e)*blur}px)`:'';
+    return e;
+  }
+  function W(el,lt,a,{stag=0.06,dur=0.66,y=30,blur=8}={}){
+    if(typeof el==='string') el=g(el);
+    const ws=[...el.children].filter(c=>c.classList.contains('w'));
+    ws.forEach((wd,i)=>{
+      const p=clamp((lt-(a+i*stag))/dur,0,1), e=eq(p);
+      wd.style.opacity=e;
+      wd.style.transform=`translateY(${(1-e)*y}px) scale(${lerp(0.96,1,e)})`;
+      wd.style.filter=blur?`blur(${(1-e)*blur}px)`:'';
+    });
+  }
+  const dash=(id,p)=>{ g(id).style.strokeDashoffset=100*(1-eq(clamp(p,0,1))); };
+
+  // ===== SVG scene animators =====
+  function animOrbit(lt){
+    const pulse=1+0.07*Math.sin(lt*3.2);
+    g('v6core').setAttribute('r', 20*pulse);
+    const rings=[['v6e1',0,1.2,'#6E56F0'],['v6e2',2.094,1.2,'#1FA2FF'],['v6e3',4.188,1.2,'#11C5D4']];
+    rings.forEach((rr,i)=>{
+      const ang=lt*1.3+rr[1];
+      const rot=(i*60)*Math.PI/180;
+      let ex=120*Math.cos(ang), ey=42*Math.sin(ang);
+      const x=150+ex*Math.cos(rot)-ey*Math.sin(rot);
+      const yv=100+ex*Math.sin(rot)+ey*Math.cos(rot);
+      g(rr[0]).setAttribute('cx',x); g(rr[0]).setAttribute('cy',yv);
+    });
+  }
+
+  function animPhase1(lt){
+    dash('v1win', (lt-0.0)/1.2);
+    const dots=[...g('v1bar').querySelectorAll('[data-c]')];
+    dots.forEach((d,i)=>{ d.style.opacity=clamp((lt-(0.9+i*0.12))/0.4,0,1); });
+    const items=['v1h','v1l1','v1l2','v1img','v1t1','v1t2'];
+    items.forEach((id,i)=>{
+      const p=clamp((lt-(1.2+i*0.16))/0.5,0,1), e=eq(p);
+      const el=g(id); el.style.opacity=e;
+      el.style.transform=`translateY(${(1-e)*12}px) scale(${lerp(0.96,1,e)})`;
+      el.style.transformBox='fill-box'; el.style.transformOrigin='left center';
+    });
+    const bp=clamp((lt-2.5)/0.4,0,1);
+    const btn=g('v1btn'); btn.style.opacity=eq(bp);
+    btn.style.transformBox='fill-box'; btn.style.transformOrigin='center';
+    const click=clamp((lt-3.5)/0.18,0,1), rel=clamp((lt-3.68)/0.25,0,1);
+    const press = click - rel;
+    btn.style.transform=`scale(${1-0.06*press})`;
+    const cur=g('v1cur');
+    const cp=clamp((lt-2.7)/0.9,0,1);
+    cur.style.opacity=clamp((lt-2.7)/0.3,0,1)*clamp((4.6-lt)/0.4,0,1);
+    const cx=lerp(470,338,eq(cp)), cy=lerp(420,300,eq(cp));
+    cur.setAttribute('transform',`translate(${cx} ${cy})`);
+    const fl=clamp((lt-3.0)/1,0,1);
+    g('v1float').style.transform=`translateY(${Math.sin(lt*1.3)*4*fl}px)`;
+    g('v1float').style.transformBox='fill-box';
+  }
+
+  // files fly in then jitter / float — the "hundreds of files every day" overload
+  const FCARDS=[[150,172,-9],[315,150,6],[470,178,-5],[630,150,8],[790,176,-7]];
+  function animFiles(lt){
+    g('vfghost').style.opacity = eq(clamp((lt-0.2)/1.1,0,1))*0.45;
+    const cards=[...document.querySelectorAll('#svf .fcard')];
+    cards.forEach((c,i)=>{
+      const e=eq(clamp((lt-(0.3+i*0.16))/0.7,0,1));
+      const [x,y,r]=FCARDS[i];
+      const fy=y+(1-e)*320;
+      const fl=Math.sin(lt*1.3+i*1.1)*5*e;
+      const jit=Math.sin(lt*0.9+i)*2.2*e;
+      c.setAttribute('transform',`translate(${x} ${fy+fl}) rotate(${r+jit}) scale(${lerp(0.7,1,e)})`);
+      c.style.opacity=e;
+    });
+  }
+
+  // laptop + phone: draw devices, fire an AI prompt from phone, files converge into one folder
+  const OBEAM=[[120,330],[220,330],[175,250],[250,250]];
+  const ODOTS=[[168,108],[362,106],[185,214],[352,210],[262,90],[300,226]];
+  function bez(t,P){ const u=1-t,a=u*u*u,b=3*u*u*t,c=3*u*t*t,d=t*t*t;
+    return [a*P[0][0]+b*P[1][0]+c*P[2][0]+d*P[3][0], a*P[0][1]+b*P[1][1]+c*P[2][1]+d*P[3][1]]; }
+  function animOrganize(lt){
+    dash('voscreen',(lt-0.2)/1.0);
+    g('vobase').style.opacity=eq(clamp((lt-1.0)/0.5,0,1));
+    const pp=eq(clamp((lt-1.3)/0.5,0,1)), ph=g('vophone');
+    ph.style.opacity=pp; ph.style.transformBox='fill-box'; ph.style.transformOrigin='center';
+    ph.style.transform=`scale(${lerp(0.6,1,pp)})`;
+    g('vobeam').style.opacity=clamp((lt-1.7)/0.3,0,1);
+    if(lt<2.4) dash('vobeam',(lt-1.7)/0.7); else g('vobeam').style.strokeDashoffset=-(lt*22);
+    const bb=g('vobubble');
+    bb.style.opacity=clamp((lt-2.5)/0.2,0,1)*clamp((3.7-lt)/0.3,0,1);
+    const pt=bez(eq(clamp((lt-2.5)/0.95,0,1)),OBEAM); bb.setAttribute('transform',`translate(${pt[0]} ${pt[1]})`);
+    g('vofolder').style.opacity=eq(clamp((lt-3.5)/0.5,0,1));
+    const dots=[...document.querySelectorAll('#svo .vodot')];
+    dots.forEach((d,i)=>{
+      const appear=clamp((lt-(3.6+i*0.12))/0.4,0,1);
+      const conv=eq(clamp((lt-(4.2+i*0.12))/0.7,0,1));
+      const [sx,sy]=ODOTS[i];
+      d.setAttribute('transform',`translate(${lerp(sx,266,conv)} ${lerp(sy,184,conv)}) scale(${lerp(1,0.4,conv)})`);
+      d.style.opacity=appear*(1-conv*0.92);
+    });
+    g('vocheck').style.opacity=clamp((lt-5.3)/0.3,0,1); dash('vocheck',(lt-5.4)/0.5);
+    const fl=clamp((lt-3.0)/1,0,1);
+    g('volap').style.transform=`translateY(${Math.sin(lt*1.2)*4*fl}px)`;
+  }
+
+  // four-step journey: Think · Build · Automate · Launch
+  function animSteps(lt){
+    dash('vsline',(lt-0.3)/1.3);
+    if(lt>1.7) g('vsline').style.strokeDashoffset=-(lt*20);
+    ['vs1','vs2','vs3','vs4'].forEach((id,i)=>{
+      const e=eq(clamp((lt-(0.4+i*0.5))/0.6,0,1));
+      const el=g(id); el.style.opacity=e; el.style.transformBox='fill-box'; el.style.transformOrigin='center';
+      el.style.transform=`scale(${lerp(0.3,1,e)})`;
+      g(id+'l').style.opacity=clamp((lt-(0.75+i*0.5))/0.5,0,1);
+    });
+    g('vsgear').style.transform=`rotate(${lt*55}deg)`;
+    const rl=eq(clamp((lt-2.7)/1.1,0,1));
+    g('vsrocket').style.transform=`translateY(${-rl*12}px)`;
+    g('vsflame').style.opacity=clamp((lt-2.9)/0.3,0,1)*(0.55+0.45*Math.abs(Math.sin(lt*18)));
+  }
+
+  // ===== timeline =====
+  const SC=[
+    ['s1',6.0,(t)=>{ A('s1k',t,0.15,0.6,{y:14,blur:4}); W('s1a',t,0.55); A('s1b',t,1.7,0.8); }],
+    ['s8',7.5,(t)=>{
+        const e=eq(clamp((t-0.3)/1.15,0,1)); const el=g('s8logo');
+        el.style.opacity=clamp((t-0.3)/0.25,0,1);
+        el.style.clipPath=`inset(0 ${(1-e)*100}% 0 0)`;
+        el.style.transform=`translateY(${(1-e)*8}px) scale(${lerp(0.985,1,e)})`;
+        A('s8tag',t,1.7,0.9); }],
+    ['s2',7.5,(t)=>{ A('s2k',t,0.2,0.6,{y:14,blur:4}); W('s2a',t,0.8);
+        const c=[...g('s2chips').children]; c.forEach((ch,i)=>A(ch,t,1.9+i*0.16,0.7,{y:34,blur:6,sFrom:0.9})); }],
+    ['s6',8.0,(t)=>{ A('sv6',t,0.2,0.8,{y:20,blur:6}); animOrbit(t);
+        A('s6k',t,0.5,0.7,{y:16,blur:4}); W('s6a',t,1.1,{stag:0.07,dur:0.8,y:40,blur:12}); A('s6b',t,2.6,0.9); }],
+    ['sfiles',9.5,(t)=>{ A('sfk',t,0.2,0.6,{y:14,blur:4}); animFiles(t-0.1);
+        A('sfa',t,3.0,0.9,{y:26}); A('sfb',t,3.9,0.9); }],
+    ['sorg',12.5,(t)=>{
+        A('solab',t,0.4,0.6,{y:16,blur:3}); A('sotitle',t,0.7,0.8,{y:30,blur:8}); A('sodesc',t,1.5,0.9,{y:24});
+        const pts=[...g('sopoints').children]; pts.forEach((p,i)=>A(p,t,5.4+i*0.5,0.7,{y:22,blur:4,x:-24}));
+        animOrganize(t-0.5); }],
+    ['s11',12.0,(t)=>{
+        A('p1lab',t,0.4,0.6,{y:16,blur:3}); A('p1title',t,0.7,0.8,{y:30,blur:8}); A('p1desc',t,1.5,0.9,{y:24});
+        const pts=[...g('p1points').children]; pts.forEach((p,i)=>A(p,t,2.4+i*0.5,0.7,{y:22,blur:4,x:-24}));
+        animPhase1(t-0.8); }],
+    ['s11b',8.0,(t)=>{
+        A('p1bk',t,0.3,0.7,{y:16,blur:4}); W('p1bh',t,0.8,{dur:0.7,y:30});
+        A('p1ca',t,1.9,0.8,{y:30,blur:8,sFrom:0.94}); A('p1arr',t,2.7,0.6,{y:0,blur:0,sFrom:0.6});
+        A('p1cb',t,3.1,0.8,{y:30,blur:8,sFrom:0.94}); A('p1bs',t,4.3,0.9); }],
+    ['sstu',8.5,(t)=>{ A('stuk',t,0.2,0.6,{y:14,blur:4}); W('stua',t,0.7); A('stub',t,1.7,0.9);
+        const c=[...g('stuchips').children]; c.forEach((ch,i)=>A(ch,t,2.9+i*0.16,0.7,{y:34,blur:6,sFrom:0.9})); }],
+    ['s7',9.5,(t)=>{ A('s7k',t,0.2,0.6,{y:14,blur:4}); W('s7h',t,0.7); animSteps(t-1.4); }],
+    ['s14',8.5,(t)=>{ A('s14a',t,0.3,0.8,{y:28}); A('s14b',t,1.5,0.9,{y:40,blur:10,sFrom:0.92});
+        A('s14d',t,3.6,0.9,{y:24}); }],
+    ['s15',8.0,(t)=>{ const e=eq(clamp((t-0.25)/1.15,0,1)); const el=g('s15logo');
+        el.style.opacity=clamp((t-0.25)/0.25,0,1);
+        el.style.clipPath=`inset(0 ${(1-e)*100}% 0 0)`;
+        el.style.transform=`scale(${lerp(0.985,1,e)})`;
+        A('s15a',t,1.4,0.8,{y:24}); A('s15b',t,2.5,0.9); }],
+  ];
+  let acc=0; const SCENES=SC.map(([id,dur,fn])=>{ const o={id,t0:acc,t1:acc+dur,fn,el:g(id)}; acc+=dur; return o; });
+  const TOTAL=acc; window.TOTAL_S=TOTAL; window.OPAQUE=true;
+
+  const FIN=0.55, FOUT=0.5;
+  function seek(t){
+    t=clamp(t,0,TOTAL);
+    g('bar').style.width=(t/TOTAL*1920)+'px';
+    g('blobA').style.transform=`translate(${Math.sin(t*0.18)*70}px,${Math.cos(t*0.13)*60}px)`;
+    g('blobB').style.transform=`translate(${Math.cos(t*0.15)*80}px,${Math.sin(t*0.11)*70}px)`;
+    g('blobC').style.transform=`translate(${Math.sin(t*0.1+1)*60}px,${Math.cos(t*0.17)*50}px)`;
+    for(const s of SCENES){
+      const live = t>=s.t0-0.001 && t<s.t1+0.001;
+      if(!live){ if(s.el.classList.contains('live')) s.el.classList.remove('live'); continue; }
+      if(!s.el.classList.contains('live')) s.el.classList.add('live');
+      const fi=clamp((t-s.t0)/FIN,0,1), fo=clamp((s.t1-t)/FOUT,0,1);
+      s.el.style.opacity=Math.min(eq(fi),eq(fo));
+      s.el.style.transform=`scale(${lerp(0.992,1,eq(fi))*(1+(1-fo)*0.016)})`;
+      s.fn(t-s.t0);
+    }
+  }
+  window.seek=seek; seek(0);
+
+  // responsive: scale the fixed 1920x1080 canvas to fit any screen (laptop, etc.)
+  function fit(){
+    const s=Math.min(window.innerWidth/1920, window.innerHeight/1080);
+    g('app').style.transform='scale('+s+')';
+  }
+  fit(); window.addEventListener('resize',fit);
+
+  document.fonts.ready.then(()=>{ window.FONTS_READY=true; });
+
+  if(!window.RENDER){
+    // autoplay removed: open paused on the composed title, wait for the presenter to start it
+    let playing=false, clock=2.6, last=null; const hint=g('hint'); seek(clock);
+    function frame(ts){ if(last==null) last=ts; let dt=(ts-last)/1000; last=ts; if(dt>0.25) dt=1/60;
+      if(playing){ clock+=dt; if(clock>=TOTAL){ clock=TOTAL; playing=false; } seek(clock); }
+      hint.style.opacity = playing ? 0 : 1; requestAnimationFrame(frame); }
+    requestAnimationFrame(frame);
+    function sceneAt(t){ for(let i=SCENES.length-1;i>=0;i--) if(t>=SCENES[i].t0) return i; return 0; }
+    addEventListener('keydown',e=>{
+      if(e.code==='Space'){ e.preventDefault(); if(clock>=TOTAL){clock=0;} playing=!playing; last=null; }
+      else if(e.code==='ArrowRight'){ const i=sceneAt(clock); clock=SCENES[Math.min(i+1,SCENES.length-1)].t0; seek(clock); }
+      else if(e.code==='ArrowLeft'){ const i=sceneAt(clock); clock=SCENES[Math.max(i-1,0)].t0; seek(clock); }
+      else if(e.key.toLowerCase()==='r'){ clock=0; playing=true; last=null; }
+    });
+    addEventListener('click',()=>{ if(clock>=TOTAL){clock=0;playing=true;last=null;return;} playing=!playing; last=null; });
+  }
+</script>
+</body>
+</html>
