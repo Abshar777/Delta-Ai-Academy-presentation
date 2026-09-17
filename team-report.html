@@ -149,6 +149,11 @@
   #bar{ position:absolute; left:0; bottom:0; height:5px; width:0; background:var(--grad); z-index:10; }
   #hint{ position:absolute; right:48px; bottom:38px; font-size:23px; color:var(--muted); font-weight:500; opacity:0; transition:opacity .6s; z-index:10; }
   #foot{ position:absolute; left:60px; bottom:38px; font-size:21px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); z-index:10; }
+  #live{ position:absolute; left:60px; bottom:80px; z-index:10; display:none; align-items:center; gap:11px;
+    font-size:19px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--chiptext);
+    background:var(--surface); border:1px solid var(--line); border-radius:100px; padding:9px 20px; box-shadow:0 10px 30px var(--shadow); }
+  #live .ld{ width:10px; height:10px; border-radius:50%; background:var(--grad); flex:0 0 10px; }
+  #live.down{ color:var(--amber); } #live.down .ld{ background:var(--amber); }
 </style>
 </head>
 <body>
@@ -348,10 +353,15 @@
   </section>
 
   <div id="foot">Delta · Team Report</div>
+  <div id="live"><span class="ld"></span><span id="livetx">Following</span></div>
   <div id="bar"></div>
   <div id="hint">space to pause · ← → to navigate</div>
 </div>
 
+<!-- Presenter sync: fill this in once and every screen follows the controller.
+     Leave it commented out to use ?sync=wss://... per link instead.
+<script>window.DECK_SYNC_URL = "wss://sync.deltainstitutions.com";</script>
+-->
 <script>
   const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)), lerp=(a,b,t)=>a+(b-a)*t, eq=x=>1-Math.pow(1-x,5), g=id=>document.getElementById(id);
   function wrapWords(el){ const kids=[...el.childNodes]; el.innerHTML='';
@@ -414,18 +424,83 @@
   document.fonts.ready.then(()=>{ window.FONTS_READY=true; });
 
   if(!window.RENDER){
-    let playing=true, clock=0, last=null; const hint=g('hint');
+    /* ---------------- presenter sync ----------------
+       One screen drives, every other open copy follows the same frame.
+       Open the deck with ?control=1 to drive it.
+       Add ?sync=wss://your-relay to reach other devices (see sync-server.js).
+       With no relay, tabs inside this one browser still stay in step.
+       Plain /team-report with no relay and no controller behaves as before. */
+    const QP    = new URLSearchParams(location.search);
+    const ROOM  = QP.get('room') || 'team-report';
+    const RELAY = QP.get('sync') || window.DECK_SYNC_URL || '';
+    const DRIVE = QP.has('control') || QP.get('role') === 'control';
+
+    let playing=true, clock=0, last=null, following=false, seen=0, beat=0;
+    const hint=g('hint'), live=g('live'), livetx=g('livetx');
+
+    function badge(mode){
+      if(!mode){ live.style.display='none'; live.className=''; return; }
+      live.style.display='flex'; live.className = mode==='down' ? 'down' : '';
+      livetx.textContent = mode==='control' ? 'Controlling' : mode==='follow' ? 'Following' : 'Reconnecting';
+    }
+    badge(DRIVE ? 'control' : '');
+
+    /* transport: BroadcastChannel between tabs, WebSocket between devices */
+    const bus = (()=>{
+      const subs=[]; let ws=null, bc=null;
+      try{ bc=new BroadcastChannel('deck:'+ROOM); bc.onmessage=e=>subs.forEach(f=>f(e.data)); }catch(_){}
+      function open(){
+        if(!RELAY) return; let sock;
+        try{ sock=new WebSocket(RELAY.replace(/\/+$/,'')+'?room='+encodeURIComponent(ROOM)); }catch(_){ return; }
+        ws=sock;
+        sock.onopen    = ()=>{ if(DRIVE) badge('control'); else if(following) badge('follow'); send({type:'hello'}); };
+        sock.onmessage = e=>{ let d; try{ d=JSON.parse(e.data); }catch(_){ return; } subs.forEach(f=>f(d)); };
+        sock.onerror   = ()=>{ try{ sock.close(); }catch(_){} };
+        sock.onclose   = ()=>{ ws=null; if(!DRIVE && following) badge('down'); setTimeout(open,2500); };
+      }
+      function send(m){ if(bc) try{ bc.postMessage(m); }catch(_){}
+                        if(ws && ws.readyState===1) ws.send(JSON.stringify(m)); }
+      open();
+      return { on:f=>subs.push(f), send };
+    })();
+
+    function push(){ if(DRIVE) bus.send({type:'state', t:clock, playing, ts:Date.now()}); }
+
+    bus.on(m=>{
+      if(!m || !m.type) return;
+      if(m.type==='hello'){ push(); return; }
+      if(m.type!=='state' || DRIVE) return;
+      following=true; seen=Date.now(); badge('follow');
+      const lag  = m.playing ? Math.min(Math.max((Date.now()-m.ts)/1000,0),1) : 0;
+      const want = clamp(m.t+lag, 0, TOTAL);
+      if(Math.abs(want-clock) > 0.2){ clock=want; seek(clock); }
+      if(playing !== !!m.playing){ playing=!!m.playing; last=null; }
+    });
+
     function frame(ts){ if(last==null)last=ts; let dt=(ts-last)/1000; last=ts; if(dt>0.25)dt=1/60;
-      if(playing){ clock+=dt; if(clock>=TOTAL){ clock=TOTAL; playing=false; } seek(clock); }
-      hint.style.opacity = clock<4 && playing ? 1 : 0; requestAnimationFrame(frame); }
+      if(playing){ clock+=dt; if(clock>=TOTAL){ clock=TOTAL; playing=false; push(); } seek(clock); }
+      if(DRIVE && ts-beat>1500){ beat=ts; push(); }
+      if(following && !DRIVE && Date.now()-seen>10000){ following=false; badge(''); }
+      hint.style.opacity = clock<4 && playing && !following ? 1 : 0; requestAnimationFrame(frame); }
     requestAnimationFrame(frame);
-    const sceneAt=t=>{ for(let i=SCENES.length-1;i>=0;i--) if(t>=SCENES[i].t0) return i; return 0; };
+
+    const sceneAt = t=>{ for(let i=SCENES.length-1;i>=0;i--) if(t>=SCENES[i].t0) return i; return 0; };
+    const locked  = ()=> following && !DRIVE;
     addEventListener('keydown',e=>{
+      if(locked()) return;
       if(e.code==='Space'){ e.preventDefault(); if(clock>=TOTAL)clock=0; playing=!playing; last=null; }
       else if(e.code==='ArrowRight'){ clock=SCENES[Math.min(sceneAt(clock)+1,SCENES.length-1)].t0; seek(clock); }
       else if(e.code==='ArrowLeft'){ clock=SCENES[Math.max(sceneAt(clock)-1,0)].t0; seek(clock); }
-      else if(e.key.toLowerCase()==='r'){ clock=0; playing=true; last=null; } });
-    addEventListener('click',()=>{ if(clock>=TOTAL){clock=0;playing=true;last=null;return;} playing=!playing; last=null; });
+      else if(e.key.toLowerCase()==='r'){ clock=0; playing=true; last=null; }
+      else return;
+      push(); });
+    addEventListener('click',()=>{ if(locked()) return;
+      if(clock>=TOTAL){ clock=0; playing=true; last=null; } else { playing=!playing; last=null; }
+      push(); });
+
+    window.DECK = { seek:t=>{ clock=clamp(t,0,TOTAL); seek(clock); push(); },
+                    play:v=>{ playing=!!v; last=null; push(); },
+                    get state(){ return {t:clock, playing, following, driving:DRIVE, room:ROOM, relay:RELAY}; } };
   }
 </script>
 </body>
