@@ -435,7 +435,8 @@
     const QP    = new URLSearchParams(location.search);
     const ROOM  = QP.get('room') || 'team-report';
     const RELAY = QP.get('sync') || window.DECK_SYNC_URL || '';
-    const DRIVE = QP.has('control') || QP.get('role') === 'control';
+    let   DRIVE = QP.has('control') || QP.get('role') === 'control';
+    const ME    = Math.random().toString(36).slice(2);
 
     let baseT=0, baseAt=Date.now(), playing=true;      // the anchor
     let following=false, seen=0, adopted=null, beat=0;
@@ -478,6 +479,9 @@
     bus.on(m=>{
       if(!m || !m.type) return;
       if(m.type==='hello'){ push(); return; }
+      if(m.type==='claim'){                      // someone else took control
+        if(m.id!==ME && DRIVE){ DRIVE=false; badge(''); adopted=null; }
+        return; }
       if(m.type!=='state' || DRIVE) return;
       following=true; seen=Date.now(); badge('follow');
       if(m.at===adopted && playing===!!m.playing) return;   // same anchor, nothing to do
@@ -498,6 +502,10 @@
     requestAnimationFrame(frame);
     bus.send({type:'hello'});          // ask a controller, if one is up, where it is
 
+    /* a screen the browser had throttled paints the right frame the moment
+       it is looked at again, without waiting for the next message */
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden) seek(at()); });
+
     const sceneAt = t=>{ for(let i=SCENES.length-1;i>=0;i--) if(t>=SCENES[i].t0) return i; return 0; };
     const locked  = ()=> following && !DRIVE;
     addEventListener('keydown',e=>{
@@ -509,6 +517,14 @@
       else if(e.key.toLowerCase()==='r'){ anchor(0,true); }
       else return;
       seek(at()); push(); });
+
+    /* C takes control of the room from any open copy, C again gives it back */
+    addEventListener('keydown',e=>{
+      if(e.key.toLowerCase()!=='c' || e.metaKey || e.ctrlKey) return;
+      DRIVE=!DRIVE;
+      if(DRIVE){ following=false; adopted=null; badge('control'); bus.send({type:'claim', id:ME}); push(); }
+      else { badge(''); }
+    });
     addEventListener('click',()=>{ if(locked()) return;
       const t=at(); if(t>=TOTAL) anchor(0,true); else anchor(t,!playing);
       seek(at()); push(); });
