@@ -1,0 +1,10 @@
+# Socket relay for the Delta decks. Vercel cannot hold a WebSocket open, so
+# deploy this anywhere that keeps connections alive (Render, Railway, Fly, a VPS)
+# and point the deck at wss://that-host.
+FROM node:22-alpine
+WORKDIR /app
+RUN npm install ws --omit=dev
+COPY sync-server.js .
+ENV PORT=8090
+EXPOSE 8090
+CMD ["node", "sync-server.js"]

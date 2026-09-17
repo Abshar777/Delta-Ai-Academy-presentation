@@ -358,10 +358,10 @@
   <div id="hint">space to pause · ← → to navigate</div>
 </div>
 
-<!-- Presenter sync: fill this in once and every screen follows the controller.
-     Leave it commented out to use ?sync=wss://... per link instead.
-<script>window.DECK_SYNC_URL = "wss://sync.deltainstitutions.com";</script>
--->
+<!-- Presenter sync. /api/sync ships with this site, so screens on different
+     devices follow the controller with nothing else to host. Point this at a
+     wss:// relay instead to use a real socket. Override per link with ?sync=. -->
+<script>window.DECK_SYNC_URL = "/api/sync";</script>
 <script>
   const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)), lerp=(a,b,t)=>a+(b-a)*t, eq=x=>1-Math.pow(1-x,5), g=id=>document.getElementById(id);
   function wrapWords(el){ const kids=[...el.childNodes]; el.innerHTML='';
@@ -453,12 +453,21 @@
     }
     badge(DRIVE ? 'control' : '');
 
-    /* transport: BroadcastChannel between tabs, WebSocket between devices */
+    /* transport
+         BroadcastChannel  tabs inside this browser, always on, no setup
+         WebSocket         ws:// or wss:// relay, other devices, instant
+         HTTP polling      http:// or https:// endpoint, other devices,
+                           works on ordinary shared hosting with no ports
+                           and no proxy. Accuracy does not suffer: what
+                           travels is the anchor, so a reply a second old
+                           still lands the follower on the exact frame. */
+    const MODE = !RELAY ? '' : (/^wss?:/i.test(RELAY) ? 'ws' : 'http');
+
     const bus = (()=>{
       const subs=[]; let ws=null, bc=null;
       try{ bc=new BroadcastChannel('deck:'+ROOM); bc.onmessage=e=>subs.forEach(f=>f(e.data)); }catch(_){}
       function open(){
-        if(!RELAY) return; let sock;
+        if(MODE!=='ws') return; let sock;
         try{ sock=new WebSocket(RELAY.replace(/\/+$/,'')+'?room='+encodeURIComponent(ROOM)); }catch(_){ return; }
         ws=sock;
         sock.onopen    = ()=>{ if(DRIVE) badge('control'); else if(following) badge('follow'); send({type:'hello'}); };
@@ -472,9 +481,42 @@
       return { on:f=>subs.push(f), send };
     })();
 
+    /* ---- HTTP polling transport ---- */
+    const api = extra => RELAY + (RELAY.includes('?') ? '&' : '?') + 'room=' + encodeURIComponent(ROOM) + (extra||'');
+    let rev = null;
+
+    async function httpPost(){
+      if(MODE!=='http') return;
+      try{
+        await fetch(api(), { method:'POST', cache:'no-store',
+          headers:{'content-type':'text/plain'},          // stays a simple request, no preflight
+          body: JSON.stringify({ t: at(), playing }) });
+        badge('control');
+      }catch(_){ badge('down'); }
+    }
+
+    async function httpGet(){
+      if(MODE!=='http' || DRIVE) return;
+      const sent=Date.now();
+      try{
+        const res = await fetch(api('&_='+sent), {cache:'no-store'});
+        const d   = await res.json();
+        if(!d || d.empty) return;                          // nobody is driving
+        const half = (Date.now()-sent)/2000;               // half the round trip
+        const pos  = clamp(d.t + (d.playing ? d.age + half : 0), 0, TOTAL);
+        following=true; seen=Date.now(); badge('follow');
+        if(d.rev!==rev || playing!==!!d.playing || Math.abs(pos-at())>0.35){
+          rev=d.rev; baseT=pos; baseAt=Date.now(); playing=!!d.playing; seek(at());
+        }
+      }catch(_){ if(following) badge('down'); }
+    }
+    if(MODE==='http') setInterval(httpGet, 1000);
+
     /* the controller shares its anchor, not its current position, so every
        follower can rebuild the exact same timeline */
-    function push(){ if(DRIVE) bus.send({type:'state', t:baseT, at:baseAt, playing, sent:Date.now()}); }
+    function push(){ if(!DRIVE) return;
+      bus.send({type:'state', t:baseT, at:baseAt, playing, sent:Date.now()});
+      httpPost(); }
 
     bus.on(m=>{
       if(!m || !m.type) return;

@@ -1,0 +1,9 @@
+# One click deploy of the socket relay on Render. WebSockets work on the free
+# plan. After it goes live, set the deck's DECK_SYNC_URL to wss://<service>.onrender.com
+services:
+  - type: web
+    name: delta-deck-sync
+    runtime: docker
+    dockerfilePath: ./Dockerfile.sync
+    plan: free
+    healthCheckPath: /health
