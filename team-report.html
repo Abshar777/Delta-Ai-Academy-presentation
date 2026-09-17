@@ -425,18 +425,25 @@
 
   if(!window.RENDER){
     /* ---------------- presenter sync ----------------
-       One screen drives, every other open copy follows the same frame.
-       Open the deck with ?control=1 to drive it.
-       Add ?sync=wss://your-relay to reach other devices (see sync-server.js).
-       With no relay, tabs inside this one browser still stay in step.
-       Plain /team-report with no relay and no controller behaves as before. */
+       One screen drives, every other open copy shows the same frame.
+       ?control=1 drives. ?sync=wss://host reaches other devices through
+       sync-server.js; without it, tabs in this one browser still stay locked.
+
+       The timeline is anchored to the wall clock, never to accumulated frame
+       deltas, so a throttled, hidden or slow screen still computes the same
+       position as the controller instead of drifting away from it. */
     const QP    = new URLSearchParams(location.search);
     const ROOM  = QP.get('room') || 'team-report';
     const RELAY = QP.get('sync') || window.DECK_SYNC_URL || '';
     const DRIVE = QP.has('control') || QP.get('role') === 'control';
 
-    let playing=true, clock=0, last=null, following=false, seen=0, beat=0;
+    let baseT=0, baseAt=Date.now(), playing=true;      // the anchor
+    let following=false, seen=0, adopted=null, beat=0;
     const hint=g('hint'), live=g('live'), livetx=g('livetx');
+
+    /* position now, derived from the anchor and real elapsed time */
+    const at = ()=> clamp(playing ? baseT+(Date.now()-baseAt)/1000 : baseT, 0, TOTAL);
+    function anchor(t,p){ baseT=clamp(t,0,TOTAL); baseAt=Date.now(); if(p!==undefined) playing=!!p; }
 
     function badge(mode){
       if(!mode){ live.style.display='none'; live.className=''; return; }
@@ -464,43 +471,51 @@
       return { on:f=>subs.push(f), send };
     })();
 
-    function push(){ if(DRIVE) bus.send({type:'state', t:clock, playing, ts:Date.now()}); }
+    /* the controller shares its anchor, not its current position, so every
+       follower can rebuild the exact same timeline */
+    function push(){ if(DRIVE) bus.send({type:'state', t:baseT, at:baseAt, playing, sent:Date.now()}); }
 
     bus.on(m=>{
       if(!m || !m.type) return;
       if(m.type==='hello'){ push(); return; }
       if(m.type!=='state' || DRIVE) return;
       following=true; seen=Date.now(); badge('follow');
-      const lag  = m.playing ? Math.min(Math.max((Date.now()-m.ts)/1000,0),1) : 0;
-      const want = clamp(m.t+lag, 0, TOTAL);
-      if(Math.abs(want-clock) > 0.2){ clock=want; seek(clock); }
-      if(playing !== !!m.playing){ playing=!!m.playing; last=null; }
+      if(m.at===adopted && playing===!!m.playing) return;   // same anchor, nothing to do
+      adopted=m.at;
+      const skew = Date.now()-(m.sent||m.at);               // latency plus clock offset
+      baseT=clamp(m.t,0,TOTAL); baseAt=m.at+skew; playing=!!m.playing;
+      seek(at());
     });
 
-    function frame(ts){ if(last==null)last=ts; let dt=(ts-last)/1000; last=ts; if(dt>0.25)dt=1/60;
-      if(playing){ clock+=dt; if(clock>=TOTAL){ clock=TOTAL; playing=false; push(); } seek(clock); }
+    function frame(ts){
+      if(playing && at()>=TOTAL){ anchor(TOTAL,false); if(DRIVE) push(); }
+      seek(at());
       if(DRIVE && ts-beat>1500){ beat=ts; push(); }
-      if(following && !DRIVE && Date.now()-seen>10000){ following=false; badge(''); }
-      hint.style.opacity = clock<4 && playing && !following ? 1 : 0; requestAnimationFrame(frame); }
+      if(following && !DRIVE && Date.now()-seen>10000){ following=false; adopted=null; badge(''); }
+      hint.style.opacity = at()<4 && playing && !following ? 1 : 0;
+      requestAnimationFrame(frame);
+    }
     requestAnimationFrame(frame);
+    bus.send({type:'hello'});          // ask a controller, if one is up, where it is
 
     const sceneAt = t=>{ for(let i=SCENES.length-1;i>=0;i--) if(t>=SCENES[i].t0) return i; return 0; };
     const locked  = ()=> following && !DRIVE;
     addEventListener('keydown',e=>{
       if(locked()) return;
-      if(e.code==='Space'){ e.preventDefault(); if(clock>=TOTAL)clock=0; playing=!playing; last=null; }
-      else if(e.code==='ArrowRight'){ clock=SCENES[Math.min(sceneAt(clock)+1,SCENES.length-1)].t0; seek(clock); }
-      else if(e.code==='ArrowLeft'){ clock=SCENES[Math.max(sceneAt(clock)-1,0)].t0; seek(clock); }
-      else if(e.key.toLowerCase()==='r'){ clock=0; playing=true; last=null; }
+      const t=at();
+      if(e.code==='Space'){ e.preventDefault(); if(t>=TOTAL) anchor(0,true); else anchor(t,!playing); }
+      else if(e.code==='ArrowRight'){ anchor(SCENES[Math.min(sceneAt(t)+1,SCENES.length-1)].t0); }
+      else if(e.code==='ArrowLeft'){  anchor(SCENES[Math.max(sceneAt(t)-1,0)].t0); }
+      else if(e.key.toLowerCase()==='r'){ anchor(0,true); }
       else return;
-      push(); });
+      seek(at()); push(); });
     addEventListener('click',()=>{ if(locked()) return;
-      if(clock>=TOTAL){ clock=0; playing=true; last=null; } else { playing=!playing; last=null; }
-      push(); });
+      const t=at(); if(t>=TOTAL) anchor(0,true); else anchor(t,!playing);
+      seek(at()); push(); });
 
-    window.DECK = { seek:t=>{ clock=clamp(t,0,TOTAL); seek(clock); push(); },
-                    play:v=>{ playing=!!v; last=null; push(); },
-                    get state(){ return {t:clock, playing, following, driving:DRIVE, room:ROOM, relay:RELAY}; } };
+    window.DECK = { seek:t=>{ anchor(t); seek(at()); push(); },
+                    play:v=>{ anchor(at(), !!v); seek(at()); push(); },
+                    get state(){ return {t:at(), playing, following, driving:DRIVE, room:ROOM, relay:RELAY}; } };
   }
 </script>
 </body>
